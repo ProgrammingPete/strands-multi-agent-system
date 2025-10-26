@@ -1,0 +1,6 @@
+Field,Type,Required,Pattern/Format,Description,Constraints
+FlightNumber,string,No,^[A-Z]{2}[0-9]{3,4}$,Airline code followed by numbers (e.g. AA123),
+Origin,string,Yes,^[A-Za-z\s\-]+$,City name of origin,min length: 2; max length: 50
+Destination,string,Yes,^[A-Za-z\s\-]+$,City name of destination,min length: 2; max length: 50
+DepartureTime,string,Yes,date-time,ISO 8601 date-time format,
+Arrival,string,Yes,date-time,ISO 8601 date-time format,
