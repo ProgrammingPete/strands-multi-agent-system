@@ -548,7 +548,53 @@ class WebRTCChatClient {
 }
 ```
 
-**Recommended Option:** Start with **Option A (SSE)** for simplicity and ease of implementation. SSE is sufficient for unidirectional streaming from server to client, which is the primary use case. If bidirectional real-time communication becomes critical (e.g., for collaborative features or real-time voice), consider upgrading to **Option B (WebSocket)**. **Option C (WebRTC)** is best reserved for peer-to-peer scenarios or when ultra-low latency is required (e.g., real-time video/audio streaming).
+**Option D: Bedrock Native Streaming Control**
+
+**What is it?** The `strands-agents` library's `BedrockModel` class provides a built-in `streaming` configuration parameter that controls whether the model uses Bedrock's `converse_stream` API (streaming) or the standard `converse` API (non-streaming).
+
+*Pros:* Native integration with Strands SDK, simple configuration flag, handles streaming at the model level, works seamlessly with agent framework
+*Cons:* Still requires a transport mechanism (SSE/WebSocket) to deliver tokens to frontend, doesn't eliminate need for Options A-C
+
+```python
+from strands.models import BedrockModel
+
+# Enable streaming (default)
+streaming_model = BedrockModel(
+    model_id="amazon.nova-lite-v1:0",
+    streaming=True  # Uses converse_stream API
+)
+
+# Disable streaming (for batch processing or testing)
+non_streaming_model = BedrockModel(
+    model_id="amazon.nova-lite-v1:0",
+    streaming=False  # Uses converse API
+)
+
+# The model's stream() method will behave accordingly
+async for chunk in streaming_model.stream(messages):
+    # Yields tokens incrementally when streaming=True
+    # Yields complete response when streaming=False
+    print(chunk)
+```
+
+**Use Cases for streaming=False:**
+- Batch processing where latency isn't critical
+- Testing and debugging (easier to inspect complete responses)
+- Cost optimization (fewer API calls)
+- When frontend doesn't support streaming UI
+
+**Use Cases for streaming=True (default):**
+- Interactive chat interfaces
+- Real-time user feedback
+- Long-form content generation
+- Better perceived performance
+
+**Recommended Option:** Use **Option D** to control Bedrock-level streaming behavior, combined with **Option A (SSE)** for transport. This gives you:
+1. `streaming=True` in BedrockModel for token-by-token generation
+2. SSE to deliver those tokens to the frontend in real-time
+3. Simple implementation with built-in browser support
+
+If bidirectional real-time communication becomes critical (e.g., for collaborative features or real-time voice), consider upgrading to **Option B (WebSocket)**. **Option C (WebRTC)** is best reserved for peer-to-peer scenarios or when ultra-low latency is required (e.g., real-time video/audio streaming).
 
 ## Data Models
 
