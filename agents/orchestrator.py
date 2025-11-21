@@ -1,21 +1,24 @@
 import os
-import readline
-from dotenv import load_dotenv
+import logging
 from strands import Agent
 from strands.models import BedrockModel
 import boto3
 
-load_dotenv()
+
 # Add imports from other tools
 from coder import coder
 from aws_researcher import aws_researcher
 from alarm_manager import alarms
 from aws_manager import aws_manager
 
-session_us_west_2 = boto3.Session(profile_name=os.getenv("AWS_PROFILE_US_WEST_2"))
+from dotenv import load_dotenv
+load_dotenv() 
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.getLogger('strands').setLevel(logging.INFO)
 
 claude_model = BedrockModel(
-    model_id="anthropic.claude-3-5-haiku-20241022-v1:0", boto_session=session_us_west_2
+    model_id="amazon.nova-lite-v1:0"
 )
 
 ORCHESTRATOR_SYSTEM_PROMPT = """
