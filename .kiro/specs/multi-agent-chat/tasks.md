@@ -36,21 +36,21 @@ This implementation plan breaks down the multi-agent chat integration into discr
     - Update system prompt with new agent descriptions
     - _Requirements: 1.3_
 
-- [ ] 3. Create Supabase tool utilities
-  - [ ] 3.1 Implement base Supabase client wrapper
+- [x] 3. Create Supabase tool utilities
+  - [x] 3.1 Implement base Supabase client wrapper
     - Create Python module for Supabase client initialization
     - Add error handling and retry logic
     - Configure connection pooling
     - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5_
   
-  - [ ] 3.2 Create generic CRUD tool generators
+  - [x] 3.2 Create generic CRUD tool generators
     - Implement get_records tool generator
     - Implement create_record tool generator
     - Implement update_record tool generator
     - Implement delete_record tool generator
     - _Requirements: 13.1, 13.2, 13.3, 13.4_
 
-- [ ] 4. Checkpoint - Verify foundation
+- [x] 4. Checkpoint - Verify foundation
   - Ensure all tests pass, ask the user if questions arise.
 
 ---

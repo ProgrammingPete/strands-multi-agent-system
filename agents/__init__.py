@@ -1,1 +1,2 @@
-from . import agent
+# Agents package
+# Import supervisor agent when needed

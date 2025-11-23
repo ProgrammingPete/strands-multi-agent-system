@@ -14,4 +14,5 @@ dependencies = [
     "strands-agents>=1.13.0",
     "strands-agents-tools>=0.2.12",
     "uv>=0.9.5",
+    "supabase>=2.0.0",
 ]
