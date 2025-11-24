@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from agents.supervisor import supervisor_agent
 from backend.models import ChatRequest, StreamChunk, AgentType
 from backend.error_handler import retry_with_backoff, translate_error_to_user_message
+from backend.context_manager import ContextManager
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,8 @@ class ChatService:
     def __init__(self):
         """Initialize the chat service."""
         self.supervisor = supervisor_agent
-        logger.info("ChatService initialized with supervisor agent")
+        self.context_manager = ContextManager()
+        logger.info("ChatService initialized with supervisor agent and context manager")
     
     async def stream_chat_response(
         self,
@@ -43,14 +45,37 @@ class ChatService:
             logger.info(f"Processing chat request for conversation {request.conversation_id}")
             logger.info(f"User message: {request.message[:100]}...")
             
-            # Build context from history
-            context = self._build_context(request)
+            # Save user message to database
+            await self.context_manager.save_message(
+                conversation_id=request.conversation_id,
+                content=request.message,
+                role="user"
+            )
+            
+            # Build context from history using context manager
+            context = await self.context_manager.build_context(request)
+            
+            # Collect full response for saving
+            full_response = []
             
             # Stream response from supervisor agent
             async for chunk in self._stream_from_agent(request.message, context):
+                # Collect tokens for full response
+                if chunk.type == "token" and chunk.content:
+                    full_response.append(chunk.content)
+                
                 # Format as SSE
                 sse_data = f"data: {json.dumps(chunk.model_dump())}\n\n"
                 yield sse_data
+            
+            # Save assistant message to database
+            if full_response:
+                await self.context_manager.save_message(
+                    conversation_id=request.conversation_id,
+                    content="".join(full_response),
+                    role="assistant",
+                    agent_type=AgentType.SUPERVISOR.value
+                )
             
             # Send completion chunk
             completion_chunk = StreamChunk(
@@ -71,26 +96,7 @@ class ChatService:
                 error=error_message
             )
             yield f"data: {json.dumps(error_chunk.model_dump())}\n\n"
-    
-    def _build_context(self, request: ChatRequest) -> str:
-        """
-        Build context string from conversation history.
-        
-        Args:
-            request: Chat request with history
-            
-        Returns:
-            Formatted context string
-        """
-        if not request.history:
-            return ""
-        
-        context_parts = ["Previous conversation:"]
-        for msg in request.history[-10:]:  # Last 10 messages for context
-            role = "User" if msg.role == "user" else "Assistant"
-            context_parts.append(f"{role}: {msg.content}")
-        
-        return "\n".join(context_parts)
+
     
     async def _stream_from_agent(
         self,

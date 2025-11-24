@@ -29,6 +29,13 @@ Welcome to the Canvalo FastAPI Backend documentation.
   - Testing results
   - Architecture decisions
 
+- **[Context Management](CONTEXT_MANAGEMENT.md)** - Task 16 completion details
+  - Context building and formatting
+  - Token limit management
+  - Context summarization
+  - Message persistence
+  - Testing and validation
+
 - **[UV Migration Guide](UV_MIGRATION.md)** - Package manager migration
   - Command changes
   - Benefits of using UV
@@ -59,6 +66,7 @@ docs/
 ├── QUICK_START.md               # Quick start guide (5 min read)
 ├── README.md                    # Full documentation (30 min read)
 ├── IMPLEMENTATION_SUMMARY.md    # Task 15 summary (10 min read)
+├── CONTEXT_MANAGEMENT.md        # Task 16 summary (15 min read)
 ├── UV_MIGRATION.md              # UV migration notes (5 min read)
 └── ORGANIZATION.md              # Documentation structure guide (3 min read)
 ```
