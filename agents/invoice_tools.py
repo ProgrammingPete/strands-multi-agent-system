@@ -19,10 +19,14 @@ from utils.supabase_client import get_supabase_client, SupabaseQueryError
 
 logger = logging.getLogger(__name__)
 
+# System test user ID - used when no user_id is provided
+# This allows the agent to work without requiring user context
+SYSTEM_USER_ID = os.getenv("SYSTEM_USER_ID", "00000000-0000-0000-0000-000000000000")
+
 
 @tool
 def get_invoices(
-    user_id: str,
+    user_id: Optional[str] = None,
     status: Optional[str] = None,
     client_id: Optional[str] = None,
     limit: int = 10
@@ -31,7 +35,7 @@ def get_invoices(
     Fetch invoices from Supabase.
     
     Args:
-        user_id: The user ID to fetch invoices for
+        user_id: Optional user ID to fetch invoices for (defaults to system user)
         status: Optional status filter (draft, sent, viewed, partial, paid, overdue, cancelled)
         client_id: Optional client ID filter
         limit: Maximum number of invoices to return (default 10, max 100)
@@ -41,6 +45,11 @@ def get_invoices(
     """
     try:
         supabase = get_supabase_client()
+        
+        # Use system user ID if not provided
+        if not user_id:
+            user_id = SYSTEM_USER_ID
+            logger.info(f"No user_id provided, using system user: {user_id}")
         
         # Validate limit
         limit = min(limit, 100)

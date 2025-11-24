@@ -17,6 +17,15 @@ Tests the Invoices Agent implementation:
 - Invoice tools (get, create, update, delete)
 - Supervisor integration
 
+### `test_invoices_agent_batch.py`
+Comprehensive batch integration tests for the Invoices Agent:
+- End-to-end invoice creation (simple and complex)
+- Invoice retrieval (all, by status, overdue)
+- Invoice updates (status changes, payment recording)
+- Invoice summaries and analytics
+- Natural language query handling
+- Real Supabase integration testing
+
 ## Running Tests
 
 ### Run All Tests
