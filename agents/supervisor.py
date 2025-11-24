@@ -5,7 +5,10 @@ from strands.models import BedrockModel
 import boto3
 
 from dotenv import load_dotenv
-load_dotenv() 
+load_dotenv()
+
+# Import specialized agents
+from .invoices_agent import invoices_agent_tool 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logging.getLogger('strands').setLevel(logging.INFO)
@@ -51,7 +54,10 @@ When routing:
 supervisor_agent = Agent(
     model=claude_model,
     system_prompt=SUPERVISOR_SYSTEM_PROMPT,
-    tools = []  # Business domain agents will be added in subsequent tasks
+    tools=[
+        invoices_agent_tool,
+        # Additional business domain agents will be added in subsequent tasks
+    ]
 )
 
 if __name__ == "__main__":

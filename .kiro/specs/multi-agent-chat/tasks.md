@@ -57,20 +57,20 @@ This implementation plan breaks down the multi-agent chat integration into discr
 
 ## Phase 2: Specialized Agent Implementation
 
-- [ ] 5. Implement Invoices Agent
-  - [ ] 5.1 Create invoices_agent.py with system prompt
+- [x] 5. Implement Invoices Agent
+  - [x] 5.1 Create invoices_agent.py with system prompt
     - Define agent with invoicing expertise
     - Configure with Bedrock model
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
   
-  - [ ] 5.2 Implement Supabase tools for invoices
+  - [x] 5.2 Implement Supabase tools for invoices
     - get_invoices tool
     - create_invoice tool
     - update_invoice tool
     - delete_invoice tool
     - _Requirements: 3.2, 3.4_
   
-  - [ ] 5.3 Add invoices agent to supervisor
+  - [x] 5.3 Add invoices agent to supervisor
     - Import invoices_agent_tool
     - Add to supervisor's tools list
     - Update routing logic
