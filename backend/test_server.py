@@ -58,10 +58,18 @@ def test_chat_stream():
                 if decoded_line.startswith('data: '):
                     chunk_count += 1
                     data = json.loads(decoded_line[6:])
-                    print(f"  Chunk {chunk_count}: {data.get('type')} - {data.get('content', '')[:50]}")
                     
+                    # Handle different chunk types
                     if data.get('type') == 'complete':
+                        print(f"  Chunk {chunk_count}: {data.get('type')} - Stream complete")
                         break
+                    elif data.get('type') == 'error':
+                        print(f"  Chunk {chunk_count}: {data.get('type')} - {data.get('error', 'Unknown error')}")
+                        break
+                    else:
+                        content = data.get('content', '')
+                        preview = content[:50] if content else '(no content)'
+                        print(f"  Chunk {chunk_count}: {data.get('type')} - {preview}")
         
         print(f"✓ Chat stream passed ({chunk_count} chunks received)\n")
     else:

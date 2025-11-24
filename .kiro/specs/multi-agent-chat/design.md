@@ -52,7 +52,8 @@ graph TB
 - React 18.3.1 with TypeScript
 - Vite for bundling
 - Tailwind CSS for styling
-- Supabase JS client for API calls
+- **Axios** for HTTP requests and SSE streaming (with fetch adapter for browser streaming support)
+- Supabase JS client for database operations
 - Web Speech API for voice recognition
 - Speech Synthesis API for text-to-speech
 
@@ -60,12 +61,14 @@ graph TB
 - Python 3.13
 - Strands Agents SDK (>=1.13.0) for agent framework
 - Amazon Bedrock (Nova Lite/Pro or Claude Haiku 3.5) for LLM
+- FastAPI for REST API endpoints
 - Supabase for database and API
-- WebSocket or Server-Sent Events for streaming
+- Server-Sent Events (SSE) for streaming responses
 
 **Infrastructure:**
 - Supabase hosted database (PostgreSQL)
 - AWS Bedrock for LLM inference
+- FastAPI backend service
 - Edge functions for backend logic (optional)
 
 ## Components and Interfaces
@@ -134,37 +137,57 @@ The field is optional and only populated for assistant messages (not user messag
 
 #### 2. AgentService (New)
 
-**Purpose:** Manages communication between frontend and multi-agent backend
+**Purpose:** Manages communication between frontend and multi-agent backend using axios
 
 **Responsibilities:**
-- Send user messages to backend
-- Handle streaming responses
-- Manage WebSocket/SSE connections
+- Send user messages to backend via axios
+- Handle streaming responses using axios with `responseType: 'stream'` and fetch adapter
+- Parse Server-Sent Events (SSE) from streaming responses
 - Parse agent responses and tool calls
-- Handle errors and retries
+- Handle errors and retries with exponential backoff
+- Manage conversation history via Supabase
+
+**HTTP Client:** Uses **axios** for all HTTP requests, including SSE streaming support in the browser. Axios provides:
+- Automatic request/response transformation
+- Built-in retry and timeout support
+- Better error handling with AxiosError
+- Streaming support via `responseType: 'stream'` with fetch adapter
+- Interceptor support for request/response middleware
 
 **Interface:**
 ```typescript
 class AgentService {
   constructor(config: AgentServiceConfig);
   
-  // Send message and get streaming response
+  // Send message and get streaming response via axios
   sendMessage(message: string, context: ConversationContext): AsyncGenerator<StreamChunk>;
   
-  // Send voice transcript
+  // Send voice transcript (delegates to sendMessage)
   sendVoiceMessage(transcript: string, context: ConversationContext): AsyncGenerator<StreamChunk>;
   
-  // Get conversation history
+  // Get conversation history from Supabase
   getHistory(conversationId: string): Promise<Message[]>;
   
-  // Clear conversation
+  // Create new conversation
+  createConversation(userId: string, title?: string): Promise<string>;
+  
+  // Get all conversations for user
+  getConversations(userId: string): Promise<Conversation[]>;
+  
+  // Clear/delete conversation
   clearConversation(conversationId: string): Promise<void>;
+  
+  // Cancel current streaming request
+  cancelRequest(): void;
 }
 
 interface AgentServiceConfig {
   apiUrl: string;
-  supabaseClient: SupabaseClient;
+  supabaseClient?: SupabaseClient;
   onError?: (error: Error) => void;
+  maxRetries?: number;        // Default: 3
+  baseRetryDelay?: number;    // Default: 1000ms
+  maxRetryDelay?: number;     // Default: 10000ms
 }
 
 interface ConversationContext {
@@ -178,7 +201,25 @@ interface StreamChunk {
   content?: string;
   toolCall?: ToolCall;
   error?: string;
+  agentType?: AgentType;
 }
+```
+
+**Axios Streaming Implementation:**
+```typescript
+// Example of axios streaming in sendMessage
+const response = await this.axiosInstance.post('/chat/stream', payload, {
+  responseType: 'stream',
+  signal: this.abortController.signal,
+  adapter: 'fetch', // Use fetch adapter for browser streaming
+});
+
+// Get the readable stream from the response
+const stream = response.data as ReadableStream<Uint8Array>;
+const reader = stream.getReader();
+
+// Parse SSE chunks from the stream
+yield* this.parseSSEStream(reader);
 ```
 
 ### Backend Components
