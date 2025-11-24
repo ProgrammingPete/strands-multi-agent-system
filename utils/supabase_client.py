@@ -129,17 +129,11 @@ class SupabaseClientWrapper:
             )
         
         try:
-            # Configure client options for connection pooling and timeouts
-            options = ClientOptions(
-                schema="api",  # Use 'api' schema as specified in design
-                auto_refresh_token=True,
-                persist_session=True,
-            )
-            
+            # Create client without custom options first
+            # The schema will be set to 'api' via table queries
             self._client = create_client(
                 supabase_url=supabase_url,
-                supabase_key=supabase_key,
-                options=options
+                supabase_key=supabase_key
             )
             
             logger.info("Supabase client initialized successfully")
@@ -194,7 +188,7 @@ class SupabaseClientWrapper:
         Returns:
             Table reference
         """
-        return self.client.table(table_name)
+        return self.client.schema("api").table(table_name)
     
     def health_check(self) -> bool:
         """
@@ -205,7 +199,7 @@ class SupabaseClientWrapper:
         """
         try:
             # Try a simple query to verify connection
-            self.client.table('agent_conversations').select('id').limit(1).execute()
+            self.client.schema("api").table('agent_conversations').select('id').limit(1).execute()
             logger.info("Supabase health check passed")
             return True
         except Exception as e:
