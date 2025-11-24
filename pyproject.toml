@@ -15,4 +15,8 @@ dependencies = [
     "strands-agents-tools>=0.2.12",
     "uv>=0.9.5",
     "supabase>=2.0.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.32.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
 ]

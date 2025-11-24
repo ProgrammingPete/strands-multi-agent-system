@@ -96,6 +96,7 @@ SUPABASE_URL=your_supabase_url
 SUPABASE_SERVICE_KEY=your_service_key
 AWS_REGION=us-east-1
 AWS_PROFILE=default
+AWS_BEARER_TOKEN_BEDROCK=your-bedrock-token-here
 ```
 
 ## Usage

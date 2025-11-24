@@ -242,28 +242,28 @@ This implementation plan breaks down the multi-agent chat integration into discr
 
 ## Phase 3: Backend API and Streaming
 
-- [ ] 15. Create FastAPI backend service
-  - [ ] 15.1 Set up FastAPI application structure
+- [x] 15. Create FastAPI backend service
+  - [x] 15.1 Set up FastAPI application structure
     - Create main.py with FastAPI app
     - Configure CORS for frontend
     - Set up environment configuration
     - _Requirements: 19.1, 19.2_
   
-  - [ ] 15.2 Implement chat endpoint with SSE streaming
+  - [x] 15.2 Implement chat endpoint with SSE streaming
     - Create POST /api/chat/stream endpoint
     - Implement SSE response streaming
     - Handle supervisor agent invocation
     - Stream tokens as they're generated
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5_
   
-  - [ ] 15.3 Implement conversation management endpoints
+  - [x] 15.3 Implement conversation management endpoints
     - GET /api/conversations - list user conversations
     - POST /api/conversations - create new conversation
     - GET /api/conversations/:id - get conversation with messages
     - DELETE /api/conversations/:id - delete conversation
     - _Requirements: 15.1, 15.2_
   
-  - [ ] 15.4 Add error handling and retry logic
+  - [x] 15.4 Add error handling and retry logic
     - Implement exponential backoff for LLM failures
     - Add user-friendly error messages
     - Handle network errors gracefully
@@ -294,21 +294,21 @@ This implementation plan breaks down the multi-agent chat integration into discr
 
 ## Phase 4: Frontend Integration
 
-- [ ] 18. Create AgentService for frontend
-  - [ ] 18.1 Implement AgentService class
+- [x] 18. Create AgentService for frontend
+  - [x] 18.1 Implement AgentService class
     - Create src/services/AgentService.ts
     - Implement sendMessage with SSE handling
     - Implement sendVoiceMessage
     - Add conversation management methods
     - _Requirements: 14.1, 14.2, 14.3_
   
-  - [ ] 18.2 Add error handling and retries
+  - [x] 18.2 Add error handling and retries
     - Implement retry logic with exponential backoff
     - Handle network errors
     - Display user-friendly error messages
     - _Requirements: 16.1, 16.2, 16.3_
   
-  - [ ] 18.3 Implement streaming response parser
+  - [x] 18.3 Implement streaming response parser
     - Parse SSE chunks
     - Handle token, tool_call, complete, and error types
     - Update UI incrementally

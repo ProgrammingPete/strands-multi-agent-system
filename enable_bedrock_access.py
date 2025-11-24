@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def check_bedrock_access():
-    session = boto3.Session(profile_name=os.getenv("AWS_PROFILE_US_WEST_2"))
+    session = boto3.Session(profile_name=os.getenv("AWS_PROFILE"))
     bedrock = session.client('bedrock', region_name='us-west-2')
     
     try:
