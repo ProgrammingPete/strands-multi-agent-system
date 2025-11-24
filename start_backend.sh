@@ -15,15 +15,9 @@ if [ ! -f .env ]; then
     echo ""
 fi
 
-# Activate virtual environment if it exists
-if [ -d .venv ]; then
-    echo "Activating virtual environment..."
-    source .venv/bin/activate
-fi
-
 # Start the server
 echo "Starting server on http://localhost:8000"
 echo "Press Ctrl+C to stop"
 echo ""
 
-python -m backend.main
+uv run python -m backend.main

@@ -38,6 +38,21 @@ strands-multi-agent-system/
 │   ├── invoices_agent.py     # Invoice management agent
 │   ├── invoice_tools.py      # Invoice CRUD tools
 │   └── ...                   # Additional agents (to be added)
+├── backend/                   # FastAPI backend service ✅
+│   ├── main.py               # FastAPI application
+│   ├── chat_service.py       # Chat streaming service
+│   ├── conversation_service.py # Conversation management
+│   ├── config.py             # Configuration
+│   ├── models.py             # Pydantic models
+│   ├── error_handler.py      # Error handling
+│   ├── test_server.py        # Test script
+│   ├── docs/                 # Backend documentation
+│   │   ├── INDEX.md          # Documentation index
+│   │   ├── QUICK_START.md    # Quick start guide
+│   │   ├── README.md         # Full documentation
+│   │   ├── IMPLEMENTATION_SUMMARY.md
+│   │   └── UV_MIGRATION.md
+│   └── README.md             # Backend overview
 ├── utils/                     # Utility modules
 │   ├── supabase_client.py    # Supabase client wrapper
 │   └── supabase_tools.py     # Generic CRUD tool generators
@@ -49,6 +64,7 @@ strands-multi-agent-system/
 ├── .kiro/                     # Kiro IDE specifications
 │   └── specs/
 │       └── multi-agent-chat/ # Feature specifications
+├── start_backend.sh           # Backend startup script
 └── .env                       # Environment configuration
 ```
 
@@ -101,10 +117,22 @@ AWS_BEARER_TOKEN_BEDROCK=your-bedrock-token-here
 
 ## Usage
 
-### Running the Supervisor Agent
+### Running the FastAPI Backend Server
 
 ```bash
-python -m agents.supervisor
+# Quick start
+./start_backend.sh
+
+# Or manually
+uv run python -m backend.main
+```
+
+The backend provides REST API endpoints for chat streaming and conversation management. See [backend/docs/](backend/docs/) for full documentation.
+
+### Running the Supervisor Agent (CLI)
+
+```bash
+uv run python -m agents.supervisor
 ```
 
 This starts an interactive session where you can chat with the supervisor agent, which will route your queries to the appropriate specialized agents.
@@ -113,7 +141,7 @@ This starts an interactive session where you can chat with the supervisor agent,
 
 ```bash
 # Test the invoices agent directly
-python -m agents.invoices_agent
+uv run python -m agents.invoices_agent
 ```
 
 ## Testing
@@ -125,30 +153,36 @@ python -m agents.invoices_agent
 ./run_tests.sh
 
 # Or directly
-python tests/run_all_tests.py
+uv run python tests/run_all_tests.py
 ```
 
 ### Run Specific Tests
 
 ```bash
 # Run foundation tests only
-python tests/run_all_tests.py --test foundation
+uv run python tests/run_all_tests.py --test foundation
 
 # Run invoices tests only
-python tests/run_all_tests.py --test invoices
+uv run python tests/run_all_tests.py --test invoices
 ```
 
 ### Verbose Output
 
 ```bash
-python tests/run_all_tests.py --verbose
+uv run python tests/run_all_tests.py --verbose
 ```
 
 ### Run Individual Test Module
 
 ```bash
-python tests/test_foundation.py
-python tests/test_invoices_agent.py
+uv run python tests/test_foundation.py
+uv run python tests/test_invoices_agent.py
+```
+
+### Test Backend Server
+
+```bash
+uv run python backend/test_server.py
 ```
 
 See [tests/README.md](tests/README.md) for detailed testing documentation.
@@ -206,6 +240,14 @@ def example_agent_tool(query: str) -> str:
   - Status management
   - Professional formatting
 
+- **FastAPI Backend Service** (Task 15)
+  - REST API with 11 endpoints
+  - Server-Sent Events (SSE) streaming
+  - Conversation management (CRUD)
+  - Error handling with retry logic
+  - CORS support for frontend
+  - Comprehensive documentation
+
 ### In Progress 🔄
 
 - Additional specialized agents (appointments, projects, etc.)
@@ -223,10 +265,17 @@ def example_agent_tool(query: str) -> str:
 
 ## Documentation
 
+### Specifications
 - [Design Document](.kiro/specs/multi-agent-chat/design.md)
 - [Requirements](.kiro/specs/multi-agent-chat/requirements.md)
 - [Implementation Tasks](.kiro/specs/multi-agent-chat/tasks.md)
+
+### Guides
 - [Testing Guide](tests/README.md)
+- [Backend Documentation](backend/docs/) - FastAPI service documentation
+  - [Quick Start](backend/docs/QUICK_START.md)
+  - [Full API Reference](backend/docs/README.md)
+  - [Implementation Summary](backend/docs/IMPLEMENTATION_SUMMARY.md)
 
 ## Contributing
 

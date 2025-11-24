@@ -35,14 +35,14 @@
 ./start_backend.sh
 ```
 
-### Option 2: Using Python directly
+### Option 2: Using uv directly
 ```bash
-python -m backend.main
+uv run python -m backend.main
 ```
 
-### Option 3: Using uvicorn
+### Option 3: Using uvicorn with uv
 ```bash
-uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+uv run uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ## Testing the Server
@@ -84,7 +84,7 @@ data: {"type":"complete","agent_type":"supervisor"}
 
 ### 3. Run automated tests
 ```bash
-python backend/test_server.py
+uv run python backend/test_server.py
 ```
 
 ## API Documentation
@@ -133,7 +133,7 @@ WORKDIR /app
 COPY . .
 RUN pip install uv && uv sync
 EXPOSE 8000
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 Build and run:
@@ -153,8 +153,7 @@ After=network.target
 Type=simple
 User=www-data
 WorkingDirectory=/opt/canvalo
-Environment="PATH=/opt/canvalo/.venv/bin"
-ExecStart=/opt/canvalo/.venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000
+ExecStart=/usr/local/bin/uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000
 Restart=always
 
 [Install]

@@ -141,12 +141,12 @@ Additional files:
    ```bash
    ./start_backend.sh
    # or
-   python -m backend.main
+   uv run python -m backend.main
    ```
 
 2. Run test script:
    ```bash
-   python backend/test_server.py
+   uv run python backend/test_server.py
    ```
 
 3. Test endpoints with curl:
