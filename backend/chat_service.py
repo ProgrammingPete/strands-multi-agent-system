@@ -44,6 +44,7 @@ class ChatService:
         try:
             logger.info(f"Processing chat request for conversation {request.conversation_id}")
             logger.info(f"User message: {request.message[:100]}...")
+            logger.info(f"User ID: {request.user_id}")
             
             # Save user message to database
             await self.context_manager.save_message(
@@ -55,11 +56,14 @@ class ChatService:
             # Build context from history using context manager
             context = await self.context_manager.build_context(request)
             
+            # Add user_id to context for tools to use
+            context_with_user = f"[SYSTEM: User ID is {request.user_id}]\n\n{context}"
+            
             # Collect full response for saving
             full_response = []
             
             # Stream response from supervisor agent
-            async for chunk in self._stream_from_agent(request.message, context):
+            async for chunk in self._stream_from_agent(request.message, context_with_user, request.user_id):
                 # Collect tokens for full response
                 if chunk.type == "token" and chunk.content:
                     full_response.append(chunk.content)
@@ -101,20 +105,25 @@ class ChatService:
     async def _stream_from_agent(
         self,
         message: str,
-        context: str
+        context: str,
+        user_id: str
     ) -> AsyncGenerator[StreamChunk, None]:
         """
         Stream response from supervisor agent with retry logic.
         
         Args:
             message: User message
-            context: Conversation context
+            context: Conversation context (includes user_id)
+            user_id: User ID for tool calls
             
         Yields:
             StreamChunk objects with tokens and tool calls
         """
         # Combine context and message
         full_prompt = f"{context}\n\nUser: {message}" if context else message
+        
+        # Store user_id in environment for tools to access
+        os.environ['CURRENT_USER_ID'] = user_id
         
         try:
             # Use retry wrapper for LLM calls
