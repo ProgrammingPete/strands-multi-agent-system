@@ -31,39 +31,14 @@ def test_chat_stream():
     """Test the chat streaming endpoint."""
     print("Testing chat stream endpoint...")
     
-    # Use system test user ID (same as used in invoice tests)
-    test_user_id = "00000000-0000-0000-0000-000000000000"
-    
-    # First, create a test conversation
-    print("Creating test conversation...")
-    create_response = requests.post(
-        "http://localhost:8000/api/conversations",
-        json={
-            "user_id": test_user_id,
-            "title": "Test Conversation"
-        }
-    )
-    
-    if create_response.status_code in [200, 201]:
-        conversation_data = create_response.json()
-        test_conversation_id = conversation_data.get('id')
-        print(f"✓ Test conversation created: {test_conversation_id}")
-    else:
-        print(f"⚠ Warning: Could not create conversation (status: {create_response.status_code})")
-        print(f"  Response: {create_response.text}")
-        # Fall back to a test UUID
-        test_conversation_id = "123e4567-e89b-12d3-a456-426614174000"
-        print(f"  Using fallback conversation ID: {test_conversation_id}")
-        print("  (messages won't be persisted)")
-    
     payload = {
         "message": "Hello, what can you help me with?",
-        "conversation_id": test_conversation_id,
-        "user_id": test_user_id,
+        "conversation_id": "test-conversation-123",
+        "user_id": "test-user-456",
         "history": []
     }
     
-    print(f"\nSending request: {json.dumps(payload, indent=2)}")
+    print(f"Sending request: {json.dumps(payload, indent=2)}")
     
     response = requests.post(
         "http://localhost:8000/api/chat/stream",

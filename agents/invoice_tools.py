@@ -35,7 +35,7 @@ def get_invoices(
     Fetch invoices from Supabase.
     
     Args:
-        user_id: Optional user ID to fetch invoices for (defaults to current authenticated user)
+        user_id: Optional user ID to fetch invoices for (defaults to system user)
         status: Optional status filter (draft, sent, viewed, partial, paid, overdue, cancelled)
         client_id: Optional client ID filter
         limit: Maximum number of invoices to return (default 10, max 100)
@@ -46,10 +46,10 @@ def get_invoices(
     try:
         supabase = get_supabase_client()
         
-        # Use current user ID from environment if not provided
+        # Use system user ID if not provided
         if not user_id:
-            user_id = os.getenv('CURRENT_USER_ID', SYSTEM_USER_ID)
-            logger.info(f"Using user_id from context: {user_id}")
+            user_id = SYSTEM_USER_ID
+            logger.info(f"No user_id provided, using system user: {user_id}")
         
         # Validate limit
         limit = min(limit, 100)
