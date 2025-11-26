@@ -50,15 +50,22 @@ When updating invoices:
 3. Update payment status when payments are received
 4. Maintain audit trail of changes
 
+Guidelines:
+- Be concise in responses
+- Format currency as $X,XXX.XX
+- Show key invoice details: client, amount, status, due date
+- Do NOT wrap responses in XML tags like <response>
+- Keep responses brief and to the point
+
 Always be professional, accurate, and helpful. If information is missing or unclear,
 ask clarifying questions before proceeding.
 """
 
-# Initialize the Bedrock model
+# Initialize the Bedrock model with higher token limit
 bedrock_model = BedrockModel(
-    model_id="amazon.nova-lite-v1:0"
+    model_id="amazon.nova-lite-v1:0",
+    max_tokens=4096
 )
-
 
 @tool
 def invoices_agent_tool(query: str) -> str:
