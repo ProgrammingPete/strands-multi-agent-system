@@ -1,0 +1,210 @@
+# Implementation Plan
+
+- [ ] 1. Database Schema Preparation
+  - [ ] 1.1 Create and execute the add_user_id_and_rls.sql migration script
+    - Add user_id columns to all 9 api schema tables (invoices, projects, appointments, proposals, contacts, reviews, campaigns, tasks, goals)
+    - Create foreign key references to auth.users(id)
+    - Create indexes on all user_id columns for performance
+    - _Requirements: 2.1, 2.2, 2.7, 10.1, 10.2_
+  - [ ] 1.2 Enable RLS and create policies for all tables
+    - Enable RLS on all api schema tables
+    - Create SELECT, INSERT, UPDATE, DELETE policies using auth.uid() = user_id
+    - _Requirements: 2.3, 2.4, 2.5, 2.6, 10.3, 10.4_
+  - [ ]* 1.3 Write property test for RLS SELECT enforcement
+    - **Property 4: RLS Policy Enforcement for SELECT**
+    - **Validates: Requirements 2.4, 9.1**
+  - [ ]* 1.4 Write property test for RLS INSERT enforcement
+    - **Property 5: RLS Policy Enforcement for INSERT**
+    - **Validates: Requirements 2.5**
+  - [ ]* 1.5 Write property test for RLS UPDATE/DELETE enforcement
+    - **Property 6: RLS Policy Enforcement for UPDATE/DELETE**
+    - **Validates: Requirements 2.6**
+  - [ ] 1.3 Grant schema permissions to Postgres roles
+    - Grant USAGE on api schema to authenticated, anon, and service_role
+    - Grant appropriate table, sequence, and function permissions
+    - _Requirements: 3.1, 3.2, 3.3, 3.4_
+
+- [ ] 2. Checkpoint - Verify database schema changes
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 3. Backend Authentication Infrastructure
+  - [ ] 3.1 Create auth_middleware.py with JWT validation
+    - Implement AuthenticationError exception class with error codes
+    - Implement validate_jwt() function using Supabase auth.get_user()
+    - Implement extract_user_id() convenience function
+    - _Requirements: 1.1, 1.3, 1.5_
+  - [ ]* 3.2 Write property test for JWT validation universality
+    - **Property 1: JWT Validation Universality**
+    - **Validates: Requirements 1.1, 1.3**
+  - [ ]* 3.3 Write property test for user ID extraction consistency
+    - **Property 3: User ID Extraction Consistency**
+    - **Validates: Requirements 1.5**
+  - [ ] 3.4 Update supabase_client.py with user-scoped client support
+    - Add create_user_scoped_client(user_jwt) method to SupabaseClientWrapper
+    - Add verify_key_configuration() method for startup validation
+    - Add SUPABASE_ANON_KEY environment variable support
+    - Log warnings when secret key is used
+    - _Requirements: 1.2, 13.1, 13.2, 13.3, 13.4, 13.5_
+  - [ ]* 3.5 Write property test for user-scoped client creation
+    - **Property 2: User-Scoped Client Creation**
+    - **Validates: Requirements 1.2, 13.2**
+  - [ ] 3.6 Update backend/config.py with new settings
+    - Add supabase_anon_key setting
+    - Add environment setting (development/production)
+    - Add system_user_id setting for testing
+    - _Requirements: 6.1, 6.2, 12.1_
+
+- [ ] 4. Checkpoint - Verify authentication infrastructure
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 5. Backend API JWT Integration
+  - [ ] 5.1 Update main.py with JWT authentication
+    - Import auth middleware functions
+    - Add authorization header parameter to /api/chat/stream endpoint
+    - Extract and validate JWT before processing requests
+    - Verify user_id in request matches JWT
+    - Return appropriate HTTP errors for auth failures
+    - _Requirements: 1.1, 1.3, 1.4_
+  - [ ]* 5.2 Write property test for invalid token rejection
+    - **Property 16: Invalid Token Rejection**
+    - **Validates: Requirements 9.3**
+  - [ ] 5.3 Update chat_service.py to propagate JWT
+    - Add jwt_token parameter to stream_chat_response
+    - Pass JWT to agent invocations
+    - Update context manager to use user-scoped clients
+    - _Requirements: 4.4_
+  - [ ]* 5.4 Write property test for user ID propagation
+    - **Property 9: Backend API User ID Propagation**
+    - **Validates: Requirements 4.4**
+
+- [ ] 6. Checkpoint - Verify backend API integration
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 7. Agent Tools Refactoring
+  - [ ] 7.1 Update invoice_tools.py for user-scoped operations
+    - Add user_id as required first parameter to all tool functions
+    - Remove SYSTEM_USER_ID fallback logic
+    - Use create_user_scoped_client() for database access
+    - Remove manual user_id filtering (RLS handles this)
+    - _Requirements: 4.1, 4.2, 4.3, 4.6, 12.6, 12.7_
+  - [ ]* 7.2 Write property test for agent tool user-scoped client usage
+    - **Property 8: Agent Tool User-Scoped Client Usage**
+    - **Validates: Requirements 4.2**
+  - [ ] 7.3 Update project_tools.py for user-scoped operations
+    - Add user_id as required first parameter
+    - Use create_user_scoped_client() for database access
+    - _Requirements: 4.1, 4.2, 4.3_
+  - [ ] 7.4 Update appointment_tools.py for user-scoped operations
+    - Add user_id as required first parameter
+    - Use create_user_scoped_client() for database access
+    - _Requirements: 4.1, 4.2, 4.3_
+  - [ ] 7.5 Update remaining agent tools (proposals, contacts, reviews, campaigns, tasks, goals)
+    - Add user_id as required first parameter to all tools
+    - Use create_user_scoped_client() for database access
+    - _Requirements: 4.1, 4.2, 4.3_
+  - [ ] 7.6 Update supervisor agent to pass user_id to specialist agents
+    - Extract user_id from request context
+    - Pass user_id to all specialist agent invocations
+    - _Requirements: 4.4_
+
+- [ ] 8. Checkpoint - Verify agent tools refactoring
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 9. Rate Limiting Implementation
+  - [ ] 9.1 Implement rate limiting middleware
+    - Install and configure slowapi library
+    - Implement rate limit of 10 requests per minute per user
+    - Identify users by authenticated user_id or IP address
+    - Return 429 errors with retry-after header when limit exceeded
+    - _Requirements: 7.1, 7.2, 7.3, 7.5_
+  - [ ]* 9.2 Write property test for rate limiting enforcement
+    - **Property 11: Rate Limiting Enforcement**
+    - **Validates: Requirements 7.1**
+  - [ ]* 9.3 Write property test for rate limit user identification
+    - **Property 12: Rate Limit User Identification**
+    - **Validates: Requirements 7.3**
+  - [ ] 9.4 Configure different rate limits for endpoint types
+    - Allow configuration of different limits per endpoint
+    - _Requirements: 7.4_
+
+- [ ] 10. Audit Logging Implementation
+  - [ ] 10.1 Implement audit logging for data access operations
+    - Install and configure structlog for structured logging
+    - Log user_id, table name, operation type, and timestamp for all data access
+    - Include sufficient context for security analysis
+    - _Requirements: 8.1, 8.2_
+  - [ ]* 10.2 Write property test for audit log completeness
+    - **Property 13: Audit Log Completeness**
+    - **Validates: Requirements 8.1, 8.2**
+  - [ ] 10.3 Implement error audit logging
+    - Log failure reason and user context for failed operations
+    - _Requirements: 8.5_
+  - [ ]* 10.4 Write property test for error audit logging
+    - **Property 14: Error Audit Logging**
+    - **Validates: Requirements 8.5**
+
+- [ ] 11. Checkpoint - Verify rate limiting and audit logging
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 12. Frontend Integration
+  - [ ] 12.1 Update AgentService.ts to include JWT in requests
+    - Get user session from Supabase Auth
+    - Include JWT in Authorization header as Bearer token
+    - Handle authentication errors appropriately
+    - _Requirements: 5.1, 5.2, 5.5_
+  - [ ]* 12.2 Write property test for authorization header inclusion
+    - **Property 10: Frontend Authorization Header Inclusion**
+    - **Validates: Requirements 5.2, 5.5**
+  - [ ] 12.3 Implement unauthenticated user handling
+    - Prevent API requests when user is not authenticated
+    - Display authentication error message
+    - _Requirements: 5.3_
+  - [ ] 12.4 Implement session expiration handling
+    - Detect session expiration
+    - Refresh token or prompt for re-authentication
+    - _Requirements: 5.4_
+
+- [ ] 13. Checkpoint - Verify frontend integration
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [ ] 14. Multi-User Data Isolation Testing
+  - [ ]* 14.1 Write property test for multi-user data isolation
+    - **Property 15: Multi-User Data Isolation**
+    - **Validates: Requirements 9.1, 9.4**
+  - [ ]* 14.2 Write property test for RLS CRUD operation completeness
+    - **Property 7: RLS CRUD Operation Completeness**
+    - **Validates: Requirements 2.3, 9.2**
+
+- [ ] 15. Test Infrastructure Updates
+  - [ ] 15.1 Update test fixtures to use SYSTEM_USER_ID
+    - Configure tests to use SYSTEM_USER_ID environment variable
+    - Associate test data with system user account
+    - _Requirements: 12.1, 12.2_
+  - [ ] 15.2 Update batch tests to pass user_id to agent tools
+    - Update InvoicesBatchTester to pass user_id
+    - Update all batch test classes to include user_id parameter
+    - _Requirements: 12.3_
+  - [ ]* 15.3 Write integration tests for RLS policy verification
+    - Create two test users
+    - Verify complete data isolation between users
+    - _Requirements: 12.4_
+  - [ ] 15.4 Implement test data cleanup
+    - Track created test data
+    - Remove test data after test completion
+    - _Requirements: 12.5_
+
+- [ ] 16. Production Environment Configuration
+  - [ ] 16.1 Create production environment configuration
+    - Remove SUPABASE_SERVICE_KEY from production environment
+    - Verify only SUPABASE_ANON_KEY is configured
+    - _Requirements: 6.1, 6.2_
+  - [ ] 16.2 Implement admin operation authentication
+    - Restrict secret key usage to admin-only operations
+    - Validate admin credentials before using secret key
+    - _Requirements: 6.3, 6.4_
+  - [ ]* 16.3 Write property test for admin credential validation
+    - **Property 17: Admin Credential Validation**
+    - **Validates: Requirements 6.4**
+
+- [ ] 17. Final Checkpoint - Verify all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
