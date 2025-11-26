@@ -4,14 +4,10 @@ Chat service for handling streaming responses from the supervisor agent.
 import logging
 import json
 import asyncio
-from typing import AsyncGenerator
-import sys
 import os
+from typing import AsyncGenerator
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from agents.supervisor import supervisor_agent
+from agents.supervisor import create_supervisor_agent
 from backend.models import ChatRequest, StreamChunk, AgentType
 from backend.error_handler import retry_with_backoff, translate_error_to_user_message
 from backend.context_manager import ContextManager
@@ -24,9 +20,8 @@ class ChatService:
     
     def __init__(self):
         """Initialize the chat service."""
-        self.supervisor = supervisor_agent
         self.context_manager = ContextManager()
-        logger.info("ChatService initialized with supervisor agent and context manager")
+        logger.info("ChatService initialized with context manager")
     
     async def stream_chat_response(
         self,
@@ -120,8 +115,6 @@ class ChatService:
             StreamChunk objects with tokens and tool calls
         """
         import queue
-        from strands import Agent
-        from strands.models import BedrockModel
         
         # Combine context and message
         full_prompt = f"{context}\n\nUser: {message}" if context else message
@@ -153,21 +146,8 @@ class ChatService:
             """Run agent in thread with streaming callback."""
             nonlocal agent_error
             try:
-                # Import supervisor components for creating streaming agent
-                from agents.supervisor import (
-                    claude_model, 
-                    SUPERVISOR_SYSTEM_PROMPT,
-                    SUPERVISOR_TOOLS
-                )
-                
-                # Create a new agent instance with streaming callback
-                streaming_agent = Agent(
-                    model=claude_model,
-                    system_prompt=SUPERVISOR_SYSTEM_PROMPT,
-                    tools=SUPERVISOR_TOOLS,
-                    callback_handler=streaming_callback
-                )
-                
+                # Create agent with streaming callback
+                streaming_agent = create_supervisor_agent(callback_handler=streaming_callback)
                 streaming_agent(full_prompt)
                 event_queue.put(('done', None))
             except Exception as e:

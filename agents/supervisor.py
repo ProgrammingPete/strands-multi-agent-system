@@ -1,20 +1,17 @@
-import os
 import logging
 from strands import Agent
 from strands.models import BedrockModel
-import boto3
 
-from dotenv import load_dotenv
-load_dotenv()
+from backend.config import settings
 
 # Import specialized agents
-from .invoices_agent import invoices_agent_tool 
+from .invoices_agent import invoices_agent_tool
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logging.getLogger('strands').setLevel(logging.INFO)
 
-claude_model = BedrockModel(
-    model_id="amazon.nova-lite-v1:0",
+bedrock_model = BedrockModel(
+    model_id=settings.bedrock_model_id,
     max_tokens=4096
 )
 
@@ -54,17 +51,33 @@ RESPONSE FORMAT:
 - Do NOT use any XML-style formatting in your output
 """
 
-# Tools list for reuse when creating streaming agents
+# Tools list
 SUPERVISOR_TOOLS = [
     invoices_agent_tool,
     # Additional business domain agents will be added in subsequent tasks
 ]
 
-supervisor_agent = Agent(
-    model=claude_model,
-    system_prompt=SUPERVISOR_SYSTEM_PROMPT,
-    tools=SUPERVISOR_TOOLS
-)
+
+def create_supervisor_agent(callback_handler=None):
+    """
+    Create a supervisor agent instance.
+    
+    Args:
+        callback_handler: Optional callback for streaming tokens
+        
+    Returns:
+        Configured Agent instance
+    """
+    return Agent(
+        model=bedrock_model,
+        system_prompt=SUPERVISOR_SYSTEM_PROMPT,
+        tools=SUPERVISOR_TOOLS,
+        callback_handler=callback_handler
+    )
+
+
+# Default agent instance (no streaming)
+supervisor_agent = create_supervisor_agent()
 
 if __name__ == "__main__":
     print("Welcome to Supervisor Agent. Type 'exit' to quit or press Ctrl+C.")

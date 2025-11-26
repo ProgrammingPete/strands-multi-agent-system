@@ -8,12 +8,11 @@ for the Canvalo painting contractor business management system.
 import logging
 from strands import Agent, tool
 from strands.models import BedrockModel
-from dotenv import load_dotenv
+
+from backend.config import settings
 
 # Import invoice-specific tools
 from .invoice_tools import get_invoices, create_invoice, update_invoice, delete_invoice
-
-load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -61,9 +60,9 @@ Always be professional, accurate, and helpful. If information is missing or uncl
 ask clarifying questions before proceeding.
 """
 
-# Initialize the Bedrock model with higher token limit
+# Initialize the Bedrock model from settings
 bedrock_model = BedrockModel(
-    model_id="amazon.nova-lite-v1:0",
+    model_id=settings.bedrock_model_id,
     max_tokens=4096
 )
 

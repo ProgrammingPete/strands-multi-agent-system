@@ -4,11 +4,6 @@ Conversation service for managing conversations and messages in Supabase.
 import logging
 from typing import List, Optional
 from datetime import datetime
-import sys
-import os
-
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.supabase_client import get_supabase_client
 from backend.models import (
