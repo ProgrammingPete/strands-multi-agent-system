@@ -51,13 +51,16 @@ When routing:
 5. For ambiguous queries, ask clarifying questions before routing
 """
 
+# Tools list for reuse when creating streaming agents
+SUPERVISOR_TOOLS = [
+    invoices_agent_tool,
+    # Additional business domain agents will be added in subsequent tasks
+]
+
 supervisor_agent = Agent(
     model=claude_model,
     system_prompt=SUPERVISOR_SYSTEM_PROMPT,
-    tools=[
-        invoices_agent_tool,
-        # Additional business domain agents will be added in subsequent tasks
-    ]
+    tools=SUPERVISOR_TOOLS
 )
 
 if __name__ == "__main__":

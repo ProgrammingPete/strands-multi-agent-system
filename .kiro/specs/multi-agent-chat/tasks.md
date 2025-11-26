@@ -314,26 +314,26 @@ This implementation plan breaks down the multi-agent chat integration into discr
     - Update UI incrementally
     - _Requirements: 14.1, 14.2_
 
-- [ ] 19. Update BottomBar component
-  - [ ] 19.1 Integrate AgentService
+- [x] 19. Update BottomBar component
+  - [x] 19.1 Integrate AgentService
     - Replace mock AI responses with AgentService calls
     - Handle streaming responses
     - Update message state incrementally
     - _Requirements: 14.1, 14.2, 14.3_
   
-  - [ ] 19.2 Add conversation persistence
+  - [x] 19.2 Add conversation persistence
     - Load conversation history on mount
     - Save new messages to backend
     - Handle conversation switching
     - _Requirements: 15.1, 15.2_
   
-  - [ ] 19.3 Update voice mode integration
+  - [x] 19.3 Update voice mode integration
     - Send voice transcripts to AgentService
     - Wait for complete response before TTS
     - Handle voice errors
     - _Requirements: 17.1, 17.2, 17.3, 17.4, 17.5_
   
-  - [ ] 19.4 Add loading and error states
+  - [x] 19.4 Add loading and error states
     - Show typing indicator during streaming
     - Display error messages
     - Handle interruptions
@@ -351,7 +351,7 @@ This implementation plan breaks down the multi-agent chat integration into discr
     - Handle overlay close
     - _Requirements: 18.3, 18.4, 18.5_
 
-- [ ] 21. Checkpoint - Verify frontend integration
+- [x] 21. Checkpoint - Verify frontend integration
   - Ensure all tests pass, ask the user if questions arise.
 
 ---

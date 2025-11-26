@@ -48,8 +48,9 @@ class ChatResponse(BaseModel):
 
 class StreamChunk(BaseModel):
     """Model for streaming response chunks."""
-    type: Literal["token", "tool_call", "complete", "error"]
+    type: Literal["token", "tool_start", "tool_result", "tool_call", "complete", "error"]
     content: Optional[str] = None
+    tool_name: Optional[str] = None
     tool_call: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
     agent_type: Optional[AgentType] = None
