@@ -1,69 +1,63 @@
 # Technology Stack
 
 ## Python Environment
-- **Python Version**: 3.13 (specified in `.python-version`)
-- **Package Manager**: uv (modern Python package manager)
-- **Virtual Environment**: `.venv/` directory
+- **Python Version**: 3.11+ (3.13 recommended)
+- **Package Manager**: uv
+- **Virtual Environment**: `.venv/`
 
-## Core Dependencies
-- **strands-agents** (>=1.13.0): Main agent framework
-- **strands-agents-tools** (>=0.2.12): Built-in tools for agents
-- **boto3** (>=1.40.61): AWS SDK for Python
-- **python-dotenv** (>=1.2.1): Environment variable management
-- **mcp** (>=1.19.0): Model Context Protocol implementation
+## Core Framework
+- **strands-agents** (>=1.13.0): Multi-agent framework
+- **strands-agents-tools** (>=0.2.12): Built-in agent tools
+- **FastAPI** (>=0.115.0): REST API framework
+- **uvicorn** (>=0.32.0): ASGI server
+- **Pydantic** (>=2.10.0): Data validation
+- **pydantic-settings** (>=2.6.0): Settings management
+
+## Database & Backend
+- **Supabase** (>=2.0.0): Backend-as-a-Service for data persistence
+- **boto3** (>=1.40.61): AWS SDK for Bedrock access
+
+## AI/LLM
+- **Amazon Bedrock**: LLM provider
+- **Default Model**: `amazon.nova-lite-v1:0`
+- **Alternative Models**: Nova Pro, Claude Haiku 3.5
 
 ## Development Tools
-- **jupyter** (>=1.1.1): Interactive notebook environment
-- **ipywidgets** (>=8.1.7): Jupyter widgets
-- **ddgs** (>=9.6.1): DuckDuckGo search integration
+- **pytest** (>=9.0.1): Testing framework
+- **pytest-asyncio** (>=1.3.0): Async test support
+- **python-dotenv** (>=1.2.1): Environment variable management
 
-## AWS Integration
-- **Amazon Bedrock**: LLM access (Nova Lite, Nova Pro, Claude Haiku 3.5)
-- **IAM**: Requires `bedrock:InvokeModelWithResponseStream` permission
-- **CloudWatch**: Alarm monitoring
-- **DynamoDB**: Database operations via MCP
-- **EC2, S3**: Resource management
-
-## MCP Servers
-- **AWS Documentation MCP**: Real-time AWS docs access
-- **DynamoDB MCP**: Database operations
-- Uses `uvx` for running MCP servers (stdio client)
-
-## Project Management
-- **pyproject.toml**: Modern Python project configuration
-- **requirements.txt**: Legacy dependency list
-- **uv.lock**: Dependency lock file
+## Configuration
+Environment variables (`.env`):
+- `SUPABASE_URL`: Supabase project URL
+- `SUPABASE_SERVICE_KEY`: Supabase service role key
+- `AWS_REGION`: AWS region (default: us-east-1)
+- `AWS_PROFILE`: Optional AWS profile name
+- `BEDROCK_MODEL_ID`: Bedrock model ID
+- `API_HOST`: API host (default: 0.0.0.0)
+- `API_PORT`: API port (default: 8000)
 
 ## Common Commands
 
 ### Environment Setup
 ```bash
-source .venv/bin/activate    # Activate virtual environment
-uv sync                      # Install dependencies with uv
-pip install -r requirements.txt  # Alternative: install with pip
+uv sync                      # Install dependencies
 ```
 
-### Running Agents
+### Running the Backend
 ```bash
-python -u agents/coder.py           # Run coder agent
-python -u agents/alarm_manager.py   # Run alarm manager
-python -u agents/aws_researcher.py  # Run AWS researcher
-python -u agents/aws_manager.py     # Run AWS manager
-python -u agents/orchestrator.py    # Run orchestrator
+uv run python -m backend.main                           # Start FastAPI server
+uv run uvicorn backend.main:app --reload --port 8000    # Alternative with hot reload
 ```
 
-### Development
+### Testing
 ```bash
-jupyter notebook lab.ipynb   # Open lab notebook
-python main.py              # Run main entry point
-python debug_strands.py     # Debug utilities
+uv run pytest tests/         # Run all tests
+uv run pytest tests/ -v      # Verbose output
 ```
 
-### AWS Setup
+### Running Agents Directly
 ```bash
-python enable_bedrock_access.py  # Configure Bedrock access
+uv run python agents/supervisor.py    # Run supervisor agent
+uv run python agents/invoices_agent.py # Run invoices agent
 ```
-
-## Configuration
-- `.env`: Environment variables (AWS credentials, region, etc.)
-- `.env.example`: Template for environment configuration

@@ -1,71 +1,56 @@
 # Project Structure
 
 ## Root Files
-- `main.py`: Main entry point
-- `lab.ipynb`: Interactive Jupyter notebook for lab exercises
-- `debug_strands.py`: Debugging utilities
-- `enable_bedrock_access.py`: AWS Bedrock setup script
-- `pyproject.toml`: Python project configuration
+- `pyproject.toml`: Python project configuration (uv package manager)
 - `requirements.txt`: Python dependencies
-- `uv.lock`: Dependency lock file
-- `.python-version`: Python version specification (3.13)
-- `.env`: Environment variables (not in git)
-- `.env.example`: Environment template
+- `.env`: Environment variables (Supabase, AWS, Bedrock config)
+- `start_backend.sh`: Script to start the FastAPI backend
+
+## Backend Directory (`backend/`)
+FastAPI service for the multi-agent chat system:
+
+- `main.py`: FastAPI app with endpoints for chat streaming and conversation management
+- `config.py`: Pydantic settings loaded from environment variables
+- `models.py`: Pydantic models for requests/responses (ChatRequest, Message, StreamChunk, etc.)
+- `chat_service.py`: Handles streaming chat responses using the supervisor agent
+- `conversation_service.py`: Manages conversations in Supabase
+- `context_manager.py`: Manages conversation context
+- `error_handler.py`: Error handling utilities
+
+### API Endpoints
+- `POST /api/chat/stream`: Stream chat response (SSE)
+- `GET /api/conversations`: List user conversations
+- `POST /api/conversations`: Create conversation
+- `GET /api/conversations/{id}`: Get conversation with messages
+- `DELETE /api/conversations/{id}`: Delete conversation
 
 ## Agents Directory (`agents/`)
-Contains the specialized agent implementations:
+Strands agent implementations:
 
-### Active Agents
-- `__init__.py`: Package initialization
-- `coder.py`: Code generation and file analysis agent
-- `alarm_manager.py`: CloudWatch alarm monitoring agent
-- `aws_researcher.py`: AWS documentation research agent (uses MCP)
-- `aws_manager.py`: AWS resource management agent (DynamoDB, EC2, S3, etc.)
-- `orchestrator.py`: Main orchestrator that routes to specialized agents
+- `supervisor.py`: Main orchestrator that routes to specialized agents
+- `invoices_agent.py`: Invoice management agent (create, view, update, delete)
+- `invoice_tools.py`: Supabase tools for invoice CRUD operations
 
-### Supporting Files
-- `run_aws_manager.sh`: Shell script for running AWS manager
-- `repl_state/`: Agent REPL state persistence
-- `__pycache__/`: Python bytecode cache
+### Agent Pattern
+1. Define system prompt with capabilities and guidelines
+2. Create BedrockModel with model ID from settings
+3. Define tools using `@tool` decorator
+4. Create Agent with model, prompt, and tools
+5. Expose as tool for supervisor using `@tool` decorator
 
-## Completed Agents (`completed_agents/`)
-Reference implementations with full code:
-- `coder_full.py`
-- `alarm_manager_full.py`
-- `aws_researcher_full.py`
-- `aws_manager_agent_full.py`
-- `orchestrator_full.py`
+## Tests Directory (`tests/`)
+Pytest test files for backend and agents.
 
-## Project Data (`project/`)
-Sample data and scripts:
-- `flights.csv`: Flight data for DynamoDB
-- `flights-schema.csv`: Schema definition
-- `userscript.sh`: User script for EC2 instances
+## Common Commands
 
-## Documentation (`images/`)
-Architecture and workflow diagrams:
-- `agent.png`: Agent architecture
-- `cloudwatch.png`: CloudWatch integration
-- `coder.png`: Coder agent workflow
-- `web agent.png`: Web agent architecture
+### Start Backend
+```bash
+uv run python -m backend.main
+# Or use uvicorn directly:
+uv run uvicorn backend.main:app --reload --port 8000
+```
 
-## Lab Documentation
-- `Creating an AWS DevOps AI Agent with the Strands Agents SDK.md`: Full lab guide
-- `Creating an AWS DevOps AI Agent with the Strands Agents SDK.pdf`: PDF version
-
-## State Management
-- `repl_state/`: Persistent REPL state
-  - `repl_state.pkl`: Pickled state file
-
-## Agent Pattern
-Agents follow a consistent pattern:
-1. Import necessary tools and models
-2. Define system prompt with specific capabilities
-3. Create agent with model, prompt, and tools
-4. Implement query function decorated with `@tool`
-5. Return string response
-
-## Tool Integration
-- Agents can be used as tools by other agents via `@tool` decorator
-- Orchestrator uses specialized agents as callable tools
-- MCP servers provide external tool capabilities (AWS docs, DynamoDB)
+### Run Tests
+```bash
+uv run pytest tests/
+```
