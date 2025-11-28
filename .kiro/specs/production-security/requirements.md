@@ -103,10 +103,10 @@ This specification addresses the critical security vulnerabilities in the multi-
 #### Acceptance Criteria
 
 1. WHEN a user makes API requests THEN the Backend API SHALL enforce a rate limit of 10 requests per minute per user
-2. WHEN a user exceeds the rate limit THEN the Backend API SHALL return a 429 Too Many Requests error
-3. WHEN rate limiting is applied THEN the Backend API SHALL identify users by their IP address or authenticated user_id
-4. WHERE rate limits are configured THEN the Backend API SHALL allow different limits for different endpoint types
-5. WHEN rate limit errors occur THEN the Backend API SHALL include retry-after information in the response
+2. WHEN a user exceeds the rate limit THEN the Backend API SHALL return a 429 Too Many Requests error with a JSON error response
+3. WHEN rate limiting is applied THEN the Backend API SHALL identify users by authenticated user_id for authenticated requests and by IP address for unauthenticated requests
+4. WHERE rate limits are configured THEN the Backend API SHALL allow different limits for different endpoint types via configuration
+5. WHEN rate limit errors occur THEN the Backend API SHALL include a retry-after header with the number of seconds until the limit resets
 
 ### Requirement 8
 
@@ -114,11 +114,11 @@ This specification addresses the critical security vulnerabilities in the multi-
 
 #### Acceptance Criteria
 
-1. WHEN a user accesses data THEN the Backend API SHALL log the user_id, table name, operation type, and timestamp
-2. WHEN audit logs are created THEN the Backend API SHALL include sufficient context for security analysis
-3. WHEN suspicious access patterns are detected THEN the Backend API SHALL generate alerts for security review
-4. WHERE audit logs are stored THEN the Backend API SHALL ensure they are tamper-proof and retained according to policy
-5. WHEN data operations fail THEN the Backend API SHALL log the failure reason and user context
+1. WHEN a user accesses data THEN the Backend API SHALL log the user_id, table name, operation type, timestamp, and request ID
+2. WHEN audit logs are created THEN the Backend API SHALL include the request path, response status code, and execution duration
+3. WHEN more than 5 authentication failures occur from the same IP address within 1 minute THEN the Backend API SHALL generate an alert for security review
+4. WHERE audit logs are stored THEN the Backend API SHALL write logs to a structured logging system with append-only semantics
+5. WHEN data operations fail THEN the Backend API SHALL log the failure reason, error code, and user context
 
 ### Requirement 9
 
@@ -191,8 +191,8 @@ This specification addresses the critical security vulnerabilities in the multi-
 
 #### Acceptance Criteria
 
-1. WHEN unauthorized access is attempted THEN the Backend API SHALL generate an alert for security review
-2. WHEN authentication failures occur repeatedly THEN the Backend API SHALL detect potential brute-force attacks
-3. WHEN RLS policy violations are detected THEN the Backend API SHALL log the violation and alert administrators
-4. WHERE monitoring is configured THEN the Backend API SHALL track authentication success rates and data access patterns
-5. WHEN security metrics exceed thresholds THEN the Backend API SHALL trigger automated alerts to the security team
+1. WHEN unauthorized access is attempted THEN the Backend API SHALL log the attempt with user context and generate an alert
+2. WHEN more than 10 authentication failures occur from the same user_id or IP address within 5 minutes THEN the Backend API SHALL flag the activity as a potential brute-force attack
+3. WHEN RLS policy violations are detected THEN the Backend API SHALL log the violation details including user_id, table, and attempted operation
+4. WHERE monitoring is configured THEN the Backend API SHALL track authentication success rate, failure rate, and request latency metrics
+5. WHEN authentication failure rate exceeds 20% over a 5-minute window THEN the Backend API SHALL trigger an automated alert

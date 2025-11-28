@@ -42,6 +42,15 @@ Welcome to the Canvalo FastAPI Backend documentation.
   - Pagination support for conversations and messages
   - Token batching for reduced SSE overhead
 
+## Security
+
+- **[Security Guide](SECURITY.md)** - Production security implementation
+  - Row Level Security (RLS) policies
+  - JWT authentication
+  - User-scoped database clients
+  - Environment configuration
+  - Security best practices
+
 ## Testing
 
 - **[Tests README](../../tests/README.md)** - Test documentation
@@ -80,6 +89,7 @@ docs/
 ├── QUICK_START.md               # Quick start guide (5 min read)
 ├── README.md                    # Full documentation (30 min read)
 ├── API_REFERENCE.md             # API endpoints and usage (15 min read)
+├── SECURITY.md                  # Production security guide (10 min read)
 ├── IMPLEMENTATION_SUMMARY.md    # Task 15 summary (10 min read)
 ├── CONTEXT_MANAGEMENT.md        # Task 16 summary (15 min read)
 ├── PERFORMANCE_OPTIMIZATION.md  # Task 23 summary (10 min read)

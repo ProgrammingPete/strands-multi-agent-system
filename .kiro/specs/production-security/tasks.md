@@ -1,12 +1,12 @@
 # Implementation Plan
 
-- [ ] 1. Database Schema Preparation
-  - [ ] 1.1 Create and execute the add_user_id_and_rls.sql migration script
+- [x] 1. Database Schema Preparation
+  - [x] 1.1 Create and execute the add_user_id_and_rls.sql migration script
     - Add user_id columns to all 9 api schema tables (invoices, projects, appointments, proposals, contacts, reviews, campaigns, tasks, goals)
     - Create foreign key references to auth.users(id)
     - Create indexes on all user_id columns for performance
     - _Requirements: 2.1, 2.2, 2.7, 10.1, 10.2_
-  - [ ] 1.2 Enable RLS and create policies for all tables
+  - [x] 1.2 Enable RLS and create policies for all tables
     - Enable RLS on all api schema tables
     - Create SELECT, INSERT, UPDATE, DELETE policies using auth.uid() = user_id
     - _Requirements: 2.3, 2.4, 2.5, 2.6, 10.3, 10.4_
@@ -19,12 +19,12 @@
   - [ ]* 1.5 Write property test for RLS UPDATE/DELETE enforcement
     - **Property 6: RLS Policy Enforcement for UPDATE/DELETE**
     - **Validates: Requirements 2.6**
-  - [ ] 1.6 Grant schema permissions to Postgres roles
+  - [x] 1.6 Grant schema permissions to Postgres roles
     - Grant USAGE on api schema to authenticated, anon, and service_role
     - Grant appropriate table, sequence, and function permissions
     - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-- [ ] 2. Checkpoint - Verify database schema changes
+- [x] 2. Checkpoint - Verify database schema changes
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 3. Backend Authentication Infrastructure

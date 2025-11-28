@@ -252,6 +252,11 @@ def example_agent_tool(query: str) -> str:
 
 ### In Progress 🔄
 
+- **Production Security** - Row Level Security and JWT authentication
+  - Database schema with user_id columns ✅
+  - RLS policies for all tables ✅
+  - Backend JWT validation (in progress)
+  - User-scoped database clients (in progress)
 - Additional specialized agents (appointments, projects, etc.)
 - Frontend integration
 - Streaming responses
@@ -277,7 +282,9 @@ def example_agent_tool(query: str) -> str:
 - [Backend Documentation](backend/docs/) - FastAPI service documentation
   - [Quick Start](backend/docs/QUICK_START.md)
   - [Full API Reference](backend/docs/README.md)
+  - [Security Guide](backend/docs/SECURITY.md)
   - [Implementation Summary](backend/docs/IMPLEMENTATION_SUMMARY.md)
+- [Database Migrations](migrations/README.md) - Schema migration instructions
 
 ## Contributing
 
