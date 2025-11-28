@@ -84,7 +84,7 @@ data: {"type":"complete","agent_type":"supervisor"}
 
 ### 3. Run automated tests
 ```bash
-uv run python backend/test_server.py
+uv run python tests/test_server.py
 ```
 
 ## API Documentation

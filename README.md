@@ -42,30 +42,32 @@ strands-multi-agent-system/
 │   ├── main.py               # FastAPI application
 │   ├── chat_service.py       # Chat streaming service
 │   ├── conversation_service.py # Conversation management
+│   ├── context_manager.py    # Context management
 │   ├── config.py             # Configuration
 │   ├── models.py             # Pydantic models
 │   ├── error_handler.py      # Error handling
-│   ├── test_server.py        # Test script
 │   ├── docs/                 # Backend documentation
-│   │   ├── INDEX.md          # Documentation index
-│   │   ├── QUICK_START.md    # Quick start guide
-│   │   ├── README.md         # Full documentation
-│   │   ├── IMPLEMENTATION_SUMMARY.md
-│   │   └── UV_MIGRATION.md
 │   └── README.md             # Backend overview
 ├── utils/                     # Utility modules
 │   ├── supabase_client.py    # Supabase client wrapper
-│   └── supabase_tools.py     # Generic CRUD tool generators
+│   ├── supabase_tools.py     # Generic CRUD tool generators
+│   ├── example_usage.py      # Usage examples
+│   └── README.md             # Utils documentation
 ├── tests/                     # Test suite
 │   ├── test_foundation.py    # Foundation tests
 │   ├── test_invoices_agent.py # Invoices agent tests
+│   ├── test_invoices_agent_batch.py # Batch invoices tests
+│   ├── test_context_manager.py # Context manager tests
+│   ├── test_server.py        # Server tests
+│   ├── verify_*.py           # Verification scripts
 │   ├── run_all_tests.py      # Test runner
+│   ├── docs/                 # Test documentation
 │   └── README.md             # Testing documentation
 ├── .kiro/                     # Kiro IDE specifications
-│   └── specs/
-│       └── multi-agent-chat/ # Feature specifications
-├── start_backend.sh           # Backend startup script
-└── .env                       # Environment configuration
+│   └── specs/                # Feature specifications
+├── start_backend.sh          # Backend startup script
+├── run_tests.sh              # Test runner script
+└── .env                      # Environment configuration
 ```
 
 ## Setup
@@ -182,7 +184,7 @@ uv run python tests/test_invoices_agent.py
 ### Test Backend Server
 
 ```bash
-uv run python backend/test_server.py
+uv run python tests/test_server.py
 ```
 
 See [tests/README.md](tests/README.md) for detailed testing documentation.

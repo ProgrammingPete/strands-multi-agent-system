@@ -31,8 +31,8 @@ backend/
 ├── models.py                # Pydantic models
 ├── chat_service.py          # Chat streaming service
 ├── conversation_service.py  # Conversation management
+├── context_manager.py       # Context management
 ├── error_handler.py         # Error handling utilities
-├── test_server.py           # Test script
 └── docs/                    # Documentation folder
     ├── README.md            # Full documentation
     ├── QUICK_START.md       # Quick start guide
@@ -72,7 +72,7 @@ uv sync
 uv run uvicorn backend.main:app --reload
 
 # Run tests
-uv run python backend/test_server.py
+uv run python tests/test_server.py
 ```
 
 For more details, see the [documentation](docs/).

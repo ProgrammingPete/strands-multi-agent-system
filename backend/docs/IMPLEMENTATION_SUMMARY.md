@@ -146,7 +146,7 @@ Additional files:
 
 2. Run test script:
    ```bash
-   uv run python backend/test_server.py
+   uv run python tests/test_server.py
    ```
 
 3. Test endpoints with curl:

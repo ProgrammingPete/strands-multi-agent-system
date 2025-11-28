@@ -32,13 +32,13 @@ uv run uvicorn backend.main:app --reload
 
 **Before:**
 ```bash
-python backend/test_server.py
+python tests/test_server.py
 pytest tests/
 ```
 
 **After:**
 ```bash
-uv run python backend/test_server.py
+uv run python tests/test_server.py
 uv run pytest tests/
 ```
 
@@ -84,7 +84,7 @@ ExecStart=/usr/local/bin/uv run uvicorn backend.main:app --host 0.0.0.0 --port 8
 uv run python -m backend.main
 
 # Run tests
-uv run python backend/test_server.py
+uv run python tests/test_server.py
 
 # Install dependencies
 uv sync
