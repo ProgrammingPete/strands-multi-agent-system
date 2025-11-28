@@ -1,14 +1,6 @@
-# FastAPI Backend Service
+# API Reference
 
-This is the FastAPI backend service for the Canvalo multi-agent chat system. It provides REST API endpoints for streaming chat responses and managing conversations.
-
-## Features
-
-- **Server-Sent Events (SSE) Streaming**: Real-time token-by-token streaming of AI responses
-- **Conversation Management**: Create, list, retrieve, and delete conversations
-- **Error Handling**: Comprehensive error handling with retry logic and user-friendly messages
-- **CORS Support**: Configured for frontend integration
-- **Logging**: Structured logging for debugging and monitoring
+Complete API documentation for the Canvalo FastAPI Backend.
 
 ## Architecture
 
@@ -20,56 +12,15 @@ backend/
 ├── models.py                # Pydantic models for validation
 ├── chat_service.py          # Chat streaming service
 ├── conversation_service.py  # Conversation management service
+├── context_manager.py       # Context management
 ├── error_handler.py         # Error handling and retry logic
-└── README.md               # This file
-```
-
-## Installation
-
-1. Install dependencies:
-```bash
-cd strands-multi-agent-system
-uv sync
-```
-
-2. Configure environment variables in `.env`:
-```bash
-# Supabase Configuration
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your-service-key-here
-
-# AWS Configuration
-AWS_REGION=us-east-1
-AWS_PROFILE=your-profile
-
-# Bedrock Configuration
-BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
-
-# API Configuration
-API_HOST=0.0.0.0
-API_PORT=8000
-```
-
-## Running the Server
-
-### Development Mode
-```bash
-uv run python -m backend.main
-```
-
-Or with uvicorn directly:
-```bash
-uv run uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-### Production Mode
-```bash
-uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 4
+└── docs/                    # Documentation
 ```
 
 ## API Endpoints
 
 ### Health Check
+
 ```
 GET /
 GET /health
@@ -78,6 +29,7 @@ GET /health
 Returns service status and configuration.
 
 ### Chat Streaming
+
 ```
 POST /api/chat/stream
 Content-Type: application/json
@@ -120,6 +72,24 @@ GET /api/conversations/{conversation_id}?user_id=uuid
 DELETE /api/conversations/{conversation_id}?user_id=uuid
 ```
 
+## Streaming Format
+
+The chat endpoint uses Server-Sent Events (SSE) format:
+
+```
+data: {"type": "token", "content": "Hello", "agent_type": "supervisor"}
+
+data: {"type": "token", "content": " world", "agent_type": "supervisor"}
+
+data: {"type": "complete", "agent_type": "supervisor"}
+```
+
+Chunk types:
+- `token`: Text token from LLM
+- `tool_call`: Agent tool execution
+- `complete`: Stream finished successfully
+- `error`: Error occurred
+
 ## Error Handling
 
 The service implements comprehensive error handling:
@@ -142,33 +112,26 @@ Example error response:
 }
 ```
 
-## Streaming Format
-
-The chat endpoint uses Server-Sent Events (SSE) format:
-
-```
-data: {"type": "token", "content": "Hello", "agent_type": "supervisor"}
-
-data: {"type": "token", "content": " world", "agent_type": "supervisor"}
-
-data: {"type": "complete", "agent_type": "supervisor"}
-```
-
-Chunk types:
-- `token`: Text token from LLM
-- `tool_call`: Agent tool execution
-- `complete`: Stream finished successfully
-- `error`: Error occurred
-
 ## Configuration
 
 All configuration is managed through environment variables and the `config.py` module:
 
-- **Supabase**: Database connection
-- **AWS Bedrock**: LLM model configuration
-- **CORS**: Allowed origins for frontend
-- **Retry**: Max attempts, delays
-- **API**: Host and port
+```bash
+# Supabase Configuration
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_KEY=your-service-key-here
+
+# AWS Configuration
+AWS_REGION=us-east-1
+AWS_PROFILE=your-profile
+
+# Bedrock Configuration
+BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
+
+# API Configuration
+API_HOST=0.0.0.0
+API_PORT=8000
+```
 
 ## Logging
 
@@ -184,13 +147,6 @@ Log levels:
 - `WARNING`: Retry attempts, non-critical issues
 - `ERROR`: Failures, exceptions
 
-## Testing
-
-Run tests with pytest:
-```bash
-uv run pytest tests/
-```
-
 ## Deployment
 
 ### Docker (Recommended)
@@ -202,12 +158,10 @@ RUN pip install uv && uv sync
 CMD ["uv", "run", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-### Environment Variables
-Ensure all required environment variables are set in production:
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_KEY`
-- `AWS_REGION`
-- `BEDROCK_MODEL_ID`
+### Production Mode
+```bash
+uv run uvicorn backend.main:app --host 0.0.0.0 --port 8000 --workers 4
+```
 
 ## Monitoring
 
@@ -242,11 +196,3 @@ Monitor these metrics in production:
 - Disable nginx buffering (`X-Accel-Buffering: no`)
 - Check client SSE implementation
 - Monitor connection timeouts
-
-## Support
-
-For issues or questions:
-1. Check logs for error details
-2. Review configuration settings
-3. Test with health check endpoint
-4. Contact development team

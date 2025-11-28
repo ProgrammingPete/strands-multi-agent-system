@@ -12,7 +12,7 @@ Welcome to the Canvalo FastAPI Backend documentation.
 
 ## Reference Documentation
 
-- **[Full API Documentation](README.md)** - Complete reference
+- **[API Reference](API_REFERENCE.md)** - Complete reference
   - Architecture overview
   - API endpoints
   - Configuration options
@@ -45,13 +45,13 @@ Welcome to the Canvalo FastAPI Backend documentation.
 
 ### For Developers
 1. Start here: [Quick Start Guide](QUICK_START.md)
-2. Understand the architecture: [README - Architecture Section](README.md#architecture)
-3. Learn about error handling: [README - Error Handling](README.md#error-handling)
+2. Understand the architecture: [API Reference - Architecture](API_REFERENCE.md#architecture)
+3. Learn about error handling: [API Reference - Error Handling](API_REFERENCE.md#error-handling)
 
 ### For DevOps
-1. Deployment guide: [README - Deployment](README.md#deployment-strategy)
-2. Configuration: [README - Configuration](README.md#environment-configuration)
-3. Monitoring: [README - Monitoring](README.md#monitoring-and-logging)
+1. Deployment guide: [API Reference - Deployment](API_REFERENCE.md#deployment)
+2. Configuration: [API Reference - Configuration](API_REFERENCE.md#configuration)
+3. Monitoring: [API Reference - Monitoring](API_REFERENCE.md#monitoring)
 
 ### For Project Managers
 1. Implementation summary: [Implementation Summary](IMPLEMENTATION_SUMMARY.md)
