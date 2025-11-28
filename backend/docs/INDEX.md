@@ -36,6 +36,12 @@ Welcome to the Canvalo FastAPI Backend documentation.
   - Message persistence
   - Testing and validation
 
+- **[Performance Optimization](PERFORMANCE_OPTIMIZATION.md)** - Task 23 completion details
+  - Database query optimization with indexes
+  - Streaming latency optimization
+  - Pagination support for conversations and messages
+  - Token batching for reduced SSE overhead
+
 ## Testing
 
 - **[Tests README](../../tests/README.md)** - Test documentation
@@ -73,8 +79,10 @@ docs/
 ├── INDEX.md                      # This file - documentation index
 ├── QUICK_START.md               # Quick start guide (5 min read)
 ├── README.md                    # Full documentation (30 min read)
+├── API_REFERENCE.md             # API endpoints and usage (15 min read)
 ├── IMPLEMENTATION_SUMMARY.md    # Task 15 summary (10 min read)
 ├── CONTEXT_MANAGEMENT.md        # Task 16 summary (15 min read)
+├── PERFORMANCE_OPTIMIZATION.md  # Task 23 summary (10 min read)
 ├── UV_MIGRATION.md              # UV migration notes (5 min read)
 └── ORGANIZATION.md              # Documentation structure guide (3 min read)
 ```

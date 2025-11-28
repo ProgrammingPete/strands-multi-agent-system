@@ -48,7 +48,34 @@ Returns Server-Sent Events stream with chat response.
 
 #### List Conversations
 ```
-GET /api/conversations?user_id=uuid&limit=50
+GET /api/conversations?user_id=uuid&limit=50&offset=0
+```
+
+**Query Parameters:**
+- `user_id` (required): User ID
+- `limit` (optional): Maximum conversations to return (default: 50)
+- `offset` (optional): Number of conversations to skip for pagination (default: 0)
+
+**Response:**
+```json
+{
+  "conversations": [
+    {
+      "id": "uuid",
+      "user_id": "uuid",
+      "title": "Conversation title",
+      "created_at": "2025-01-15T10:30:00Z",
+      "updated_at": "2025-01-15T10:35:00Z",
+      "last_message_at": "2025-01-15T10:35:00Z",
+      "message_count": 5,
+      "metadata": {}
+    }
+  ],
+  "total": 100,
+  "limit": 50,
+  "offset": 0,
+  "has_more": true
+}
 ```
 
 #### Create Conversation
@@ -64,8 +91,13 @@ Content-Type: application/json
 
 #### Get Conversation with Messages
 ```
-GET /api/conversations/{conversation_id}?user_id=uuid
+GET /api/conversations/{conversation_id}?user_id=uuid&message_limit=100&message_offset=0
 ```
+
+**Query Parameters:**
+- `user_id` (required): User ID for authorization
+- `message_limit` (optional): Maximum messages to return (default: 100, max: 500)
+- `message_offset` (optional): Number of messages to skip for pagination (default: 0)
 
 **Response Codes:**
 - `200`: Conversation with messages returned
