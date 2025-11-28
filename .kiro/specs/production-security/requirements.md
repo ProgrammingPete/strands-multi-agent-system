@@ -102,11 +102,11 @@ This specification addresses the critical security vulnerabilities in the multi-
 
 #### Acceptance Criteria
 
-1. WHEN a user makes API requests THEN the system SHALL enforce a rate limit of 10 requests per minute per user
-2. WHEN a user exceeds the rate limit THEN the system SHALL return a 429 Too Many Requests error
-3. WHEN rate limiting is applied THEN the system SHALL identify users by their IP address or authenticated user_id
-4. WHERE rate limits are configured THEN the system SHALL allow different limits for different endpoint types
-5. WHEN rate limit errors occur THEN the system SHALL include retry-after information in the response
+1. WHEN a user makes API requests THEN the Backend API SHALL enforce a rate limit of 10 requests per minute per user
+2. WHEN a user exceeds the rate limit THEN the Backend API SHALL return a 429 Too Many Requests error
+3. WHEN rate limiting is applied THEN the Backend API SHALL identify users by their IP address or authenticated user_id
+4. WHERE rate limits are configured THEN the Backend API SHALL allow different limits for different endpoint types
+5. WHEN rate limit errors occur THEN the Backend API SHALL include retry-after information in the response
 
 ### Requirement 8
 
@@ -114,11 +114,11 @@ This specification addresses the critical security vulnerabilities in the multi-
 
 #### Acceptance Criteria
 
-1. WHEN a user accesses data THEN the system SHALL log the user_id, table name, operation type, and timestamp
-2. WHEN audit logs are created THEN the system SHALL include sufficient context for security analysis
-3. WHEN suspicious access patterns are detected THEN the system SHALL generate alerts for security review
-4. WHERE audit logs are stored THEN the system SHALL ensure they are tamper-proof and retained according to policy
-5. WHEN data operations fail THEN the system SHALL log the failure reason and user context
+1. WHEN a user accesses data THEN the Backend API SHALL log the user_id, table name, operation type, and timestamp
+2. WHEN audit logs are created THEN the Backend API SHALL include sufficient context for security analysis
+3. WHEN suspicious access patterns are detected THEN the Backend API SHALL generate alerts for security review
+4. WHERE audit logs are stored THEN the Backend API SHALL ensure they are tamper-proof and retained according to policy
+5. WHEN data operations fail THEN the Backend API SHALL log the failure reason and user context
 
 ### Requirement 9
 
@@ -126,12 +126,12 @@ This specification addresses the critical security vulnerabilities in the multi-
 
 #### Acceptance Criteria
 
-1. WHEN testing user isolation THEN the system SHALL verify that users cannot access other users' data
-2. WHEN testing RLS policies THEN the system SHALL confirm that all CRUD operations respect user_id filtering
-3. WHEN testing JWT validation THEN the system SHALL verify that invalid or expired tokens are rejected
-4. WHEN testing with multiple users THEN the system SHALL confirm complete data isolation between users
-5. WHERE staging environments are used THEN the system SHALL test with real user JWTs and enabled RLS policies
-6. WHEN running batch tests THEN the system SHALL use the SYSTEM_USER_ID for creating test data
+1. WHEN testing user isolation THEN the Test Infrastructure SHALL verify that users cannot access other users' data
+2. WHEN testing RLS policies THEN the Test Infrastructure SHALL confirm that all CRUD operations respect user_id filtering
+3. WHEN testing JWT validation THEN the Test Infrastructure SHALL verify that invalid or expired tokens are rejected
+4. WHEN testing with multiple users THEN the Test Infrastructure SHALL confirm complete data isolation between users
+5. WHERE staging environments are used THEN the Test Infrastructure SHALL test with real user JWTs and enabled RLS policies
+6. WHEN running batch tests THEN the Test Infrastructure SHALL use the SYSTEM_USER_ID for creating test data
 
 ### Requirement 10
 
@@ -191,8 +191,8 @@ This specification addresses the critical security vulnerabilities in the multi-
 
 #### Acceptance Criteria
 
-1. WHEN unauthorized access is attempted THEN the system SHALL generate an alert for security review
-2. WHEN authentication failures occur repeatedly THEN the system SHALL detect potential brute-force attacks
-3. WHEN RLS policy violations are detected THEN the system SHALL log the violation and alert administrators
-4. WHERE monitoring is configured THEN the system SHALL track authentication success rates and data access patterns
-5. WHEN security metrics exceed thresholds THEN the system SHALL trigger automated alerts to the security team
+1. WHEN unauthorized access is attempted THEN the Backend API SHALL generate an alert for security review
+2. WHEN authentication failures occur repeatedly THEN the Backend API SHALL detect potential brute-force attacks
+3. WHEN RLS policy violations are detected THEN the Backend API SHALL log the violation and alert administrators
+4. WHERE monitoring is configured THEN the Backend API SHALL track authentication success rates and data access patterns
+5. WHEN security metrics exceed thresholds THEN the Backend API SHALL trigger automated alerts to the security team

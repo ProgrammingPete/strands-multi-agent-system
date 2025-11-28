@@ -683,7 +683,12 @@ class TestConversationManagement:
         
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
+        # API now returns paginated response with conversations list
+        assert isinstance(data, dict)
+        assert "conversations" in data
+        assert isinstance(data["conversations"], list)
+        assert "total" in data
+        assert "has_more" in data
     
     def test_get_conversation_with_messages(self):
         """Test getting a conversation with its messages."""

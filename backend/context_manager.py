@@ -111,24 +111,40 @@ class ContextManager:
     async def _load_conversation_history(
         self,
         conversation_id: str,
-        user_id: str
+        user_id: str,
+        use_recent_only: bool = True
     ) -> List[Message]:
         """
         Load conversation history from database.
         
+        Optimized: Uses get_recent_messages for context building
+        to avoid loading entire conversation history.
+        
         Args:
             conversation_id: Conversation ID
             user_id: User ID for authorization
+            use_recent_only: If True, only load recent messages for context
             
         Returns:
             List of messages in chronological order
         """
         try:
-            conversation = await self.conversation_service.get_conversation(
-                conversation_id,
-                user_id
-            )
-            return conversation.messages
+            if use_recent_only:
+                # Optimized path: only load recent messages for context
+                # Uses idx_agent_messages_conversation_recent index
+                messages = await self.conversation_service.get_recent_messages(
+                    conversation_id,
+                    limit=self.PRESERVE_RECENT_MESSAGES * 2  # Load extra for summarization
+                )
+                logger.info(f"Loaded {len(messages)} recent messages for context")
+                return messages
+            else:
+                # Full history path: load all messages (paginated)
+                conversation = await self.conversation_service.get_conversation(
+                    conversation_id,
+                    user_id
+                )
+                return conversation.messages
         except Exception as e:
             logger.error(f"Error loading conversation history: {e}", exc_info=True)
             return []

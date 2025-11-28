@@ -1,11 +1,18 @@
 """
 Chat service for handling streaming responses from the supervisor agent.
+
+Performance optimizations (Task 23.2):
+- Reduced queue polling timeout for lower latency
+- Token batching to reduce SSE overhead
+- Configurable streaming parameters
+- Optimized async sleep intervals
 """
 import logging
 import json
 import asyncio
 import os
-from typing import AsyncGenerator
+import time
+from typing import AsyncGenerator, List
 
 from agents.supervisor import create_supervisor_agent
 from backend.models import ChatRequest, StreamChunk, AgentType
@@ -14,14 +21,30 @@ from backend.context_manager import ContextManager
 
 logger = logging.getLogger(__name__)
 
+# Streaming optimization constants
+# Queue polling timeout in seconds (lower = more responsive, higher CPU)
+QUEUE_POLL_TIMEOUT = 0.02  # 20ms - optimized from 50ms
+
+# Async sleep interval when queue is empty (lower = more responsive)
+ASYNC_SLEEP_INTERVAL = 0.005  # 5ms - optimized from 10ms
+
+# Token batching settings
+# Batch tokens together if they arrive within this window (reduces SSE overhead)
+TOKEN_BATCH_WINDOW_MS = 10  # 10ms window for batching
+TOKEN_BATCH_MAX_SIZE = 5  # Maximum tokens to batch together
+
+# Minimum time between SSE events (prevents overwhelming the client)
+MIN_SSE_INTERVAL_MS = 5  # 5ms minimum between events
+
 
 class ChatService:
-    """Service for handling chat requests and streaming responses."""
+    """Service for handling chat requests and streaming responses with optimized latency."""
     
     def __init__(self):
         """Initialize the chat service."""
         self.context_manager = ContextManager()
-        logger.info("ChatService initialized with context manager")
+        self._last_sse_time = 0
+        logger.info("ChatService initialized with optimized streaming")
     
     async def stream_chat_response(
         self,
@@ -104,7 +127,12 @@ class ChatService:
         user_id: str
     ) -> AsyncGenerator[StreamChunk, None]:
         """
-        Stream response from supervisor agent with retry logic.
+        Stream response from supervisor agent with optimized latency.
+        
+        Performance optimizations:
+        - Reduced queue polling timeout (20ms vs 50ms)
+        - Token batching to reduce SSE overhead
+        - Optimized async sleep intervals (5ms vs 10ms)
         
         Args:
             message: User message
@@ -133,14 +161,14 @@ class ChatService:
             complete = kwargs.get("complete", False)
             current_tool_use = kwargs.get("current_tool_use", {})
             
-            # Stream text tokens
+            # Stream text tokens with timestamp for batching
             if data:
-                event_queue.put(('token', data))
+                event_queue.put(('token', data, time.time()))
             
             # Track tool usage
             if current_tool_use and current_tool_use.get("name"):
                 tool_name = current_tool_use.get("name", "Unknown")
-                event_queue.put(('tool_start', {'name': tool_name}))
+                event_queue.put(('tool_start', {'name': tool_name}, time.time()))
         
         def run_agent():
             """Run agent in thread with streaming callback."""
@@ -149,10 +177,10 @@ class ChatService:
                 # Create agent with streaming callback
                 streaming_agent = create_supervisor_agent(callback_handler=streaming_callback)
                 streaming_agent(full_prompt)
-                event_queue.put(('done', None))
+                event_queue.put(('done', None, time.time()))
             except Exception as e:
                 agent_error = e
-                event_queue.put(('error', str(e)))
+                event_queue.put(('error', str(e), time.time()))
             finally:
                 streaming_complete.set()
         
@@ -164,19 +192,48 @@ class ChatService:
             # Track seen tools to avoid duplicate events
             seen_tools = set()
             
-            # Yield events as they arrive
+            # Token batching buffer
+            token_buffer: List[str] = []
+            last_token_time = 0
+            
+            # Yield events as they arrive with optimized polling
             while not streaming_complete.is_set() or not event_queue.empty():
                 try:
-                    # Non-blocking check with small timeout
-                    event_type, event_data = event_queue.get(timeout=0.05)
+                    # Optimized: reduced timeout from 50ms to 20ms
+                    event_type, event_data, event_time = event_queue.get(timeout=QUEUE_POLL_TIMEOUT)
                     
                     if event_type == 'token':
-                        yield StreamChunk(
-                            type="token",
-                            content=event_data,
-                            agent_type=AgentType.SUPERVISOR
+                        # Token batching: collect tokens that arrive close together
+                        token_buffer.append(event_data)
+                        last_token_time = event_time
+                        
+                        # Flush buffer if max size reached or enough time passed
+                        should_flush = (
+                            len(token_buffer) >= TOKEN_BATCH_MAX_SIZE or
+                            (time.time() - last_token_time) * 1000 > TOKEN_BATCH_WINDOW_MS
                         )
+                        
+                        if should_flush and token_buffer:
+                            # Batch tokens together for single SSE event
+                            batched_content = "".join(token_buffer)
+                            token_buffer.clear()
+                            yield StreamChunk(
+                                type="token",
+                                content=batched_content,
+                                agent_type=AgentType.SUPERVISOR
+                            )
+                            
                     elif event_type == 'tool_start':
+                        # Flush any pending tokens before tool event
+                        if token_buffer:
+                            batched_content = "".join(token_buffer)
+                            token_buffer.clear()
+                            yield StreamChunk(
+                                type="token",
+                                content=batched_content,
+                                agent_type=AgentType.SUPERVISOR
+                            )
+                        
                         tool_name = event_data.get('name')
                         # Only emit tool_start once per tool invocation
                         if tool_name and tool_name not in seen_tools:
@@ -187,13 +244,41 @@ class ChatService:
                                 agent_type=AgentType.SUPERVISOR
                             )
                     elif event_type == 'error':
+                        # Flush any pending tokens before error
+                        if token_buffer:
+                            batched_content = "".join(token_buffer)
+                            token_buffer.clear()
+                            yield StreamChunk(
+                                type="token",
+                                content=batched_content,
+                                agent_type=AgentType.SUPERVISOR
+                            )
                         raise Exception(event_data)
                     elif event_type == 'done':
+                        # Flush any remaining tokens
+                        if token_buffer:
+                            batched_content = "".join(token_buffer)
+                            token_buffer.clear()
+                            yield StreamChunk(
+                                type="token",
+                                content=batched_content,
+                                agent_type=AgentType.SUPERVISOR
+                            )
                         break
                         
                 except queue.Empty:
-                    # Allow other async tasks to run
-                    await asyncio.sleep(0.01)
+                    # Flush buffer on timeout if we have pending tokens
+                    if token_buffer and (time.time() - last_token_time) * 1000 > TOKEN_BATCH_WINDOW_MS:
+                        batched_content = "".join(token_buffer)
+                        token_buffer.clear()
+                        yield StreamChunk(
+                            type="token",
+                            content=batched_content,
+                            agent_type=AgentType.SUPERVISOR
+                        )
+                    
+                    # Optimized: reduced sleep from 10ms to 5ms
+                    await asyncio.sleep(ASYNC_SLEEP_INTERVAL)
                     continue
             
             # Ensure agent task completes

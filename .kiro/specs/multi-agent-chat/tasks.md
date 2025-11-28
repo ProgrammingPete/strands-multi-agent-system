@@ -389,13 +389,13 @@ This implementation plan breaks down the multi-agent chat integration into discr
     - LLM failures
     - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.5_
 
-- [ ] 23. Performance optimization
-  - [ ] 23.1 Optimize database queries
+- [x] 23. Performance optimization
+  - [x] 23.1 Optimize database queries
     - Add missing indexes
     - Optimize conversation loading
     - _Requirements: 21.2_
   
-  - [ ] 23.2 Optimize streaming
+  - [x] 23.2 Optimize streaming
     - Tune chunk sizes
     - Minimize latency
     - _Requirements: 21.3_

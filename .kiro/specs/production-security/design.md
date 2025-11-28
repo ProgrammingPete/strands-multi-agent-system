@@ -49,42 +49,29 @@ PostgreSQL Database (RLS Policies)
 ### Component Diagram
 
 ```mermaid
-graph TB
-    subgraph "Frontend Layer"
-        FE[React Frontend]
-        AUTH[Supabase Auth]
-    end
-    
-    subgraph "Backend Layer"
-        API[FastAPI Backend]
-        MIDDLEWARE[Auth Middleware]
-        FACTORY[Supabase Client Factory]
-    end
-    
-    subgraph "Agent Layer"
-        SUPERVISOR[Supervisor Agent]
-        INV[Invoices Agent]
-        PROJ[Projects Agent]
-        OTHER[Other Agents...]
-    end
-    
-    subgraph "Data Layer"
-        SUPABASE[Supabase API]
-        RLS[RLS Policies]
-        DB[(PostgreSQL)]
-    end
-    
-    FE -->|1. User Login| AUTH
-    AUTH -->|2. JWT Token| FE
-    FE -->|3. Request + JWT| API
-    API -->|4. Validate JWT| MIDDLEWARE
-    MIDDLEWARE -->|5. Extract user_id| FACTORY
-    FACTORY -->|6. Create User-Scoped Client| SUPABASE
-    API -->|7. Invoke with user_id| SUPERVISOR
-    SUPERVISOR -->|8. Route to Specialist| INV
-    INV -->|9. Query with RLS| SUPABASE
-    SUPABASE -->|10. Enforce RLS| RLS
-    RLS -->|11. Filter by user_id| DB
+flowchart TB
+    FE[React Frontend]
+    AUTH[Supabase Auth]
+    API[FastAPI Backend]
+    MW[Auth Middleware]
+    CF[Client Factory]
+    SUP[Supervisor Agent]
+    INV[Invoices Agent]
+    SB[Supabase API]
+    RLS[RLS Policies]
+    DB[(PostgreSQL)]
+
+    FE --> AUTH
+    AUTH --> FE
+    FE --> API
+    API --> MW
+    MW --> CF
+    CF --> SB
+    API --> SUP
+    SUP --> INV
+    INV --> SB
+    SB --> RLS
+    RLS --> DB
 ```
 
 ## Components and Interfaces
@@ -217,7 +204,11 @@ def extract_user_id(jwt_token: str) -> str:
 
 **Location:** `utils/supabase_client.py`
 
-**Current Implementation:** Uses `SupabaseClientWrapper` singleton class
+**Current Implementation:** 
+- Uses `SupabaseClientWrapper` singleton class with `SUPABASE_SERVICE_KEY` (bypasses RLS)
+- Has `retry_with_backoff` decorator for retry logic
+- Uses `schema("api")` for table queries
+- Provides `table()`, `execute_query()`, and `health_check()` methods
 
 **Required Updates:**
 
@@ -225,6 +216,10 @@ def extract_user_id(jwt_token: str) -> str:
 class SupabaseClientWrapper:
     """Enhanced wrapper with user-scoped client support."""
     
+    # EXISTING: Keep current _instance, _client, __new__, __init__, _initialize_client
+    # EXISTING: Keep current client property, execute_query, table, health_check methods
+    
+    # NEW: Add user-scoped client creation
     def create_user_scoped_client(self, user_jwt: str) -> Client:
         """
         Create a Supabase client scoped to a specific user.
@@ -239,6 +234,9 @@ class SupabaseClientWrapper:
         supabase_url = os.getenv("SUPABASE_URL")
         anon_key = os.getenv("SUPABASE_ANON_KEY")
         
+        if not anon_key:
+            raise SupabaseConnectionError("SUPABASE_ANON_KEY not configured")
+        
         return create_client(
             supabase_url=supabase_url,
             supabase_key=anon_key,
@@ -249,6 +247,7 @@ class SupabaseClientWrapper:
             }
         )
     
+    # NEW: Add key configuration verification
     def verify_key_configuration(self) -> dict:
         """
         Verify Supabase key configuration on startup.
@@ -257,37 +256,57 @@ class SupabaseClientWrapper:
         Returns:
             dict with key_type, is_valid, warnings
         """
-        # Check if key is secret key format or JWT
-        # Log appropriate warnings
-        pass
-
-# Update get_supabase_client to support optional user_jwt parameter
-def get_supabase_client(user_jwt: Optional[str] = None) -> SupabaseClientWrapper:
-    """
-    Get Supabase client wrapper.
-    
-    Args:
-        user_jwt: Optional user JWT for user-scoped operations
+        supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
+        anon_key = os.getenv("SUPABASE_ANON_KEY")
+        environment = os.getenv("ENVIRONMENT", "development")
         
-    Returns:
-        SupabaseClientWrapper instance
-    """
-    wrapper = SupabaseClientWrapper()
-    if user_jwt:
-        # Return wrapper configured for user-scoped operations
-        pass
-    return wrapper
+        warnings = []
+        
+        if supabase_key and environment == "production":
+            warnings.append("WARNING: SUPABASE_SERVICE_KEY is set in production - RLS will be bypassed")
+            logger.warning("SUPABASE_SERVICE_KEY detected in production environment")
+        
+        if not anon_key:
+            warnings.append("WARNING: SUPABASE_ANON_KEY not configured - user-scoped operations unavailable")
+        
+        return {
+            "key_type": "service_key" if supabase_key else "anon_key",
+            "is_valid": bool(anon_key),
+            "warnings": warnings
+        }
+
+# EXISTING: Keep get_supabase_client() and get_client() functions unchanged
 ```
 
 ### 3. Agent Tools Interface
 
 **Purpose:** Standardized interface for all agent tools
 
-**Updated Signature:**
+**Current Implementation (`agents/invoice_tools.py`):**
+```python
+# Current: user_id is optional with SYSTEM_USER_ID fallback
+SYSTEM_USER_ID = os.getenv("SYSTEM_USER_ID", "00000000-0000-0000-0000-000000000000")
+
+@tool
+def get_invoices(
+    user_id: Optional[str] = None,  # Optional with fallback
+    status: Optional[str] = None,
+    client_id: Optional[str] = None,
+    limit: int = 10
+) -> str:
+    # Uses CURRENT_USER_ID env var or SYSTEM_USER_ID fallback
+    if not user_id:
+        user_id = os.getenv('CURRENT_USER_ID', SYSTEM_USER_ID)
+    # Uses service key client (bypasses RLS)
+    supabase = get_supabase_client()
+```
+
+**Required Updates:**
 ```python
 @tool
 def get_invoices(
-    user_id: str,  # Now required
+    user_id: str,  # REQUIRED - no default
+    user_jwt: Optional[str] = None,  # Optional - behavior depends on environment
     status: Optional[str] = None,
     client_id: Optional[str] = None,
     limit: int = 10
@@ -296,13 +315,42 @@ def get_invoices(
     Fetch invoices for a specific user.
     RLS policies automatically filter by user_id.
     """
+    environment = os.getenv("ENVIRONMENT", "development")
+    
+    if user_jwt:
+        # Production path: Use user-scoped client with RLS enforcement
+        supabase = get_supabase_client().create_user_scoped_client(user_jwt)
+    elif environment == "development":
+        # Development path: Use service key (bypasses RLS)
+        logger.warning("Using service key - RLS bypassed (development mode)")
+        supabase = get_supabase_client()
+    else:
+        # Production without JWT: Fail securely
+        raise AuthenticationError("JWT required in production", "MISSING_TOKEN")
+    
+    # RLS automatically filters by user_id when using user-scoped client
+    query = supabase.schema("api").table('invoices').select('*')
 ```
 
 **All agent tools must:**
-- Accept `user_id` as first parameter (required)
-- Use `create_user_scoped_client()` for database access
-- Rely on RLS policies for data filtering
-- Not manually filter by user_id (RLS handles this)
+- Accept `user_id` as first parameter (required, no default)
+- Accept optional `user_jwt` parameter
+- Use `create_user_scoped_client(user_jwt)` when JWT is provided
+- In production (`ENVIRONMENT=production`): Require JWT, fail if missing
+- In development (`ENVIRONMENT=development`): Allow service key fallback with warning
+- Rely on RLS policies for data filtering (remove manual `.eq('user_id', ...)` filters)
+
+**Local Development Workflow:**
+1. Set `ENVIRONMENT=development` in `.env`
+2. Service key fallback is allowed (with logged warning)
+3. RLS is bypassed in development for convenience
+4. When testing RLS, use a test user JWT
+
+**Production Security:**
+- `ENVIRONMENT=production` enforces JWT requirement
+- No fallback to service key
+- All requests must be authenticated
+- RLS policies are always enforced
 
 ### 4. Backend API Endpoints
 
@@ -310,21 +358,29 @@ def get_invoices(
 
 **Current Implementation:** `backend/main.py` with FastAPI
 
+**Current State:**
+- `/api/chat/stream` accepts `ChatRequest` with `user_id` field (no JWT validation)
+- `/api/conversations` endpoints use `user_id` query parameter (no JWT validation)
+- CORS middleware configured for localhost origins
+- Request logging middleware in place
+- Exception handlers return structured error responses
+
 **Required Updates:**
 
 ```python
 from fastapi import Header, HTTPException
+from backend.auth_middleware import validate_jwt, AuthenticationError
 
 @app.post("/api/chat/stream")
 async def stream_chat(
     request: ChatRequest,
-    authorization: str = Header(None)  # Add authorization header
+    authorization: str = Header(None)  # NEW: Add authorization header
 ):
     """
     Stream chat responses from agents with JWT authentication.
     
     Headers:
-        Authorization: Bearer <jwt_token>
+        Authorization: Bearer <jwt_token>  # NEW
         
     Body:
         message: User's message
@@ -332,25 +388,25 @@ async def stream_chat(
         user_id: User ID (will be validated against JWT)
         history: Message history
     """
-    # 1. Extract JWT from Authorization header
+    # NEW: 1. Extract JWT from Authorization header
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
     
     jwt_token = authorization.replace("Bearer ", "")
     
-    # 2. Validate JWT and extract user_id
+    # NEW: 2. Validate JWT and extract user_id
     try:
         validated_user_id = validate_jwt(jwt_token)
     except AuthenticationError as e:
         raise HTTPException(status_code=401, detail=e.user_message)
     
-    # 3. Verify user_id in request matches JWT
+    # NEW: 3. Verify user_id in request matches JWT
     if request.user_id != validated_user_id:
         raise HTTPException(status_code=403, detail="User ID mismatch")
     
-    # 4. Pass JWT to chat service for user-scoped operations
+    # MODIFIED: 4. Pass JWT to chat service for user-scoped operations
     return StreamingResponse(
-        chat_service.stream_chat_response(request, jwt_token),
+        chat_service.stream_chat_response(request, jwt_token),  # Add jwt_token parameter
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -368,26 +424,51 @@ async def stream_chat(
 
 **Location:** `CanvaloFrontend/src/services/AgentService.ts`
 
-**Interface:**
+**Current Implementation:**
+- Uses Axios with `baseURL` from config
+- `sendMessage()` accepts `ConversationContext` with `userId`
+- Sends `user_id` in request body (no Authorization header)
+- Has retry logic with exponential backoff
+- Handles SSE streaming responses
+
+**Required Updates:**
 ```typescript
+// NEW: Import Supabase client
+import { supabase } from '../supabase/client';
+
 class AgentService {
-  async sendMessage(message: string): Promise<Response> {
-    // 1. Get user session from Supabase Auth
-    const { data: { session } } = await supabase.auth.getSession()
+  // MODIFIED: Add JWT to sendMessage
+  async *sendMessage(
+    message: string,
+    context: ConversationContext
+  ): AsyncGenerator<StreamChunk> {
+    // NEW: 1. Get user session from Supabase Auth
+    const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
-      throw new Error('User not authenticated')
+      yield { type: 'error', error: 'User not authenticated. Please log in.' };
+      return;
     }
     
-    // 2. Send request with JWT in Authorization header
-    return fetch('/api/chat/stream', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
+    // MODIFIED: 2. Add Authorization header to request
+    const response = await this.axiosInstance.post(
+      '/chat/stream',
+      {
+        message,
+        conversation_id: context.conversationId,
+        user_id: context.userId,
+        history: context.history.map(msg => ({...})),
       },
-      body: JSON.stringify({ message })
-    })
+      {
+        responseType: 'stream',
+        signal: this.abortController.signal,
+        adapter: 'fetch',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`  // NEW
+        }
+      }
+    );
+    // ... rest of streaming logic
   }
 }
 ```
@@ -477,12 +558,30 @@ USING (auth.uid() = user_id);
 
 ### Environment Configuration
 
-**Development (.env):**
+**Current Development (.env):**
+```bash
+# Supabase Configuration (CURRENT)
+SUPABASE_URL=https://project.supabase.co
+SUPABASE_SERVICE_KEY=sb_secret_...  # Secret key - bypasses RLS
+
+# AWS Configuration
+AWS_REGION=us-east-1
+AWS_PROFILE=default
+
+# Bedrock Configuration
+BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
+
+# API Configuration
+API_HOST=0.0.0.0
+API_PORT=8000
+```
+
+**Target Development (.env) - After Migration:**
 ```bash
 # Supabase Configuration
 SUPABASE_URL=https://project.supabase.co
-SUPABASE_ANON_KEY=eyJhbGci...  # Anon key for user operations
-SUPABASE_SERVICE_KEY=sb_secret_...  # Secret key for system operations
+SUPABASE_ANON_KEY=eyJhbGci...  # NEW: Anon key for user operations
+SUPABASE_SERVICE_KEY=sb_secret_...  # Secret key for system operations (dev only)
 
 # AWS Configuration
 AWS_REGION=us-east-1
@@ -495,12 +594,12 @@ BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
 API_HOST=0.0.0.0
 API_PORT=8000
 
-# Environment
+# NEW: Environment settings
 ENVIRONMENT=development
 SYSTEM_USER_ID=00000000-0000-0000-0000-000000000000
 ```
 
-**Production (.env.production):**
+**Target Production (.env.production):**
 ```bash
 # Supabase Configuration
 SUPABASE_URL=https://project.supabase.co
@@ -909,6 +1008,13 @@ ORDER BY tablename, cmd;
 
 **Objective:** Refactor backend to use user-scoped clients
 
+**Current State:**
+- `utils/supabase_client.py`: Uses `SUPABASE_SERVICE_KEY` only, no user-scoped client support
+- `backend/config.py`: Has `supabase_service_key` setting, no anon key or environment settings
+- `backend/main.py`: No JWT validation, accepts `user_id` in request body without verification
+- `backend/chat_service.py`: Passes `user_id` via environment variable `CURRENT_USER_ID`
+- `agents/invoice_tools.py`: Has optional `user_id` with `SYSTEM_USER_ID` fallback
+
 **Steps:**
 
 1. **Update `utils/supabase_client.py`:**
@@ -917,34 +1023,34 @@ ORDER BY tablename, cmd;
    - Add `SUPABASE_ANON_KEY` to environment configuration
    - Log warnings when secret key is used
    
-2. **Create `backend/auth_middleware.py`:**
+2. **Create `backend/auth_middleware.py`:** (NEW FILE)
    - Add `validate_jwt(token)` function using Supabase Auth
    - Add `extract_user_id(token)` function to get user_id from JWT
    - Add `AuthenticationError` exception class
    
 3. **Update `backend/config.py`:**
-   - Add `supabase_anon_key` setting
-   - Add `environment` setting (development/production)
-   - Add `system_user_id` setting for testing
+   - Add `supabase_anon_key` setting (NEW)
+   - Add `environment` setting (development/production) (NEW)
+   - Add `system_user_id` setting for testing (NEW)
    
 4. **Update `backend/main.py`:**
-   - Import auth middleware functions
-   - Add `authorization` header parameter to `/api/chat/stream`
-   - Extract and validate JWT before processing
-   - Verify user_id matches JWT
-   - Pass JWT to chat service
+   - Import auth middleware functions (NEW)
+   - Add `authorization` header parameter to `/api/chat/stream` (NEW)
+   - Extract and validate JWT before processing (NEW)
+   - Verify user_id matches JWT (NEW)
+   - Pass JWT to chat service (MODIFY)
    
 5. **Update `backend/chat_service.py`:**
-   - Add `jwt_token` parameter to `stream_chat_response`
-   - Pass JWT to agent invocations
-   - Update context manager to use user-scoped clients
+   - Add `jwt_token` parameter to `stream_chat_response` (MODIFY signature)
+   - Pass JWT to agent invocations (MODIFY `_stream_from_agent`)
+   - Remove `os.environ['CURRENT_USER_ID']` pattern (REMOVE)
    
 6. **Update all agent tools** (starting with `agents/invoice_tools.py`):
-   - Add `user_id` parameter (required, no default)
-   - Remove `SYSTEM_USER_ID` fallback logic
-   - Accept optional `user_jwt` parameter
-   - Use `create_user_scoped_client(user_jwt)` when JWT provided
-   - Remove manual `.eq('user_id', ...)` filtering (RLS handles this)
+   - Change `user_id` parameter from optional to required (MODIFY)
+   - Remove `SYSTEM_USER_ID` fallback logic (REMOVE)
+   - Accept optional `user_jwt` parameter (NEW)
+   - Use `create_user_scoped_client(user_jwt)` when JWT provided (NEW)
+   - Remove manual `.eq('user_id', ...)` filtering (RLS handles this) (REMOVE)
    
 7. **Update agent invocation pattern:**
    - Supervisor agent passes `user_id` to specialist agents
@@ -964,17 +1070,24 @@ ORDER BY tablename, cmd;
 
 **Objective:** Send user JWTs to backend
 
+**Current State:**
+- `AgentService.ts`: Uses Axios with no Authorization header
+- Sends `user_id` in request body (from `ConversationContext`)
+- Has retry logic and SSE streaming support
+- No authentication checks before API calls
+
 **Steps:**
 1. Update `CanvaloFrontend/src/services/AgentService.ts`:
-   - Get user session from Supabase Auth
-   - Include JWT in Authorization header
-   - Handle authentication errors
-   - Implement token refresh logic
+   - Import Supabase client (NEW)
+   - Get user session from Supabase Auth before requests (NEW)
+   - Include JWT in Authorization header (NEW)
+   - Handle authentication errors (NEW)
+   - Implement token refresh logic (NEW)
 
 2. Add authentication checks:
-   - Verify user is logged in before API calls
-   - Display login prompt if not authenticated
-   - Handle session expiration
+   - Verify user is logged in before API calls (NEW)
+   - Yield error chunk if not authenticated (NEW)
+   - Handle session expiration (NEW)
 
 **Testing:**
 - Test with authenticated users

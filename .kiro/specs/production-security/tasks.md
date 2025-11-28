@@ -19,7 +19,7 @@
   - [ ]* 1.5 Write property test for RLS UPDATE/DELETE enforcement
     - **Property 6: RLS Policy Enforcement for UPDATE/DELETE**
     - **Validates: Requirements 2.6**
-  - [ ] 1.3 Grant schema permissions to Postgres roles
+  - [ ] 1.6 Grant schema permissions to Postgres roles
     - Grant USAGE on api schema to authenticated, anon, and service_role
     - Grant appropriate table, sequence, and function permissions
     - _Requirements: 3.1, 3.2, 3.3, 3.4_
@@ -83,8 +83,9 @@
 - [ ] 7. Agent Tools Refactoring
   - [ ] 7.1 Update invoice_tools.py for user-scoped operations
     - Add user_id as required first parameter to all tool functions
-    - Remove SYSTEM_USER_ID fallback logic
-    - Use create_user_scoped_client() for database access
+    - Add optional user_jwt parameter for user-scoped client creation
+    - Implement environment-based behavior (development allows service key fallback, production requires JWT)
+    - Use create_user_scoped_client() when JWT provided
     - Remove manual user_id filtering (RLS handles this)
     - _Requirements: 4.1, 4.2, 4.3, 4.6, 12.6, 12.7_
   - [ ]* 7.2 Write property test for agent tool user-scoped client usage
