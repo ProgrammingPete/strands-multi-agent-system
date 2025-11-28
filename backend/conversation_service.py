@@ -136,18 +136,20 @@ class ConversationService:
         try:
             logger.info(f"Getting conversation {conversation_id}")
             
-            # Get conversation
+            # Get conversation (don't use single() to avoid error when not found)
             conv_response = (
                 self.supabase.table("agent_conversations")
                 .select("*")
                 .eq("id", conversation_id)
                 .eq("user_id", user_id)
-                .single()
                 .execute()
             )
             
-            if not conv_response.data:
+            if not conv_response or not conv_response.data or len(conv_response.data) == 0:
                 raise ValueError(f"Conversation {conversation_id} not found")
+            
+            # Get the first (and should be only) result
+            conv_data = conv_response.data[0]
             
             # Get messages
             msg_response = (
@@ -171,7 +173,7 @@ class ConversationService:
             ]
             
             conversation = ConversationWithMessages(
-                **conv_response.data,
+                **conv_data,
                 messages=messages
             )
             

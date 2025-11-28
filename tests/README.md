@@ -26,6 +26,18 @@ Comprehensive batch integration tests for the Invoices Agent:
 - Natural language query handling
 - Real Supabase integration testing
 
+### `test_e2e.py`
+End-to-end tests for the complete multi-agent chat system:
+- **Server Health**: Health check and root endpoint tests
+- **Basic Chat Flow**: Message sending, streaming responses, message persistence
+- **Agent Routing**: Invoice queries, unimplemented domain handling
+- **Multi-Agent Coordination**: Ambiguous query handling
+- **Voice Mode**: Transcript processing, TTS response handling
+- **Error Scenarios**: Invalid IDs, empty messages, missing fields, non-existent resources
+- **Conversation Management**: CRUD operations for conversations
+
+Requirements covered: 12.1-12.12, 14.1-14.5, 15.1-15.2, 16.1-16.5, 17.1-17.4
+
 ## Running Tests
 
 ### Run All Tests
@@ -44,7 +56,22 @@ python tests/run_all_tests.py --test foundation
 
 # Run invoices tests only
 python tests/run_all_tests.py --test invoices
+
+# Run e2e tests (requires server running)
+uv run pytest tests/test_e2e.py -v
 ```
+
+### Run E2E Tests
+The e2e tests require the FastAPI server to be running:
+```bash
+# Terminal 1: Start the server
+uv run python -m backend.main
+
+# Terminal 2: Run e2e tests
+uv run pytest tests/test_e2e.py -v --tb=short
+```
+
+The e2e tests authenticate with Supabase using the same test credentials as the frontend (`TEST_USER_EMAIL` and `TEST_USER_PASSWORD` from `.env`).
 
 ### Verbose Output
 ```bash
@@ -131,6 +158,7 @@ python tests/run_all_tests.py
 Current test coverage:
 - ✅ Phase 1 Foundation (supervisor, Supabase, CRUD tools)
 - ✅ Invoices Agent (agent, tools, integration)
+- ✅ End-to-End Tests (chat flow, streaming, routing, errors, conversations)
 - 🔄 Additional agents (to be added as implemented)
 
 ## Requirements

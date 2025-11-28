@@ -36,6 +36,14 @@ Welcome to the Canvalo FastAPI Backend documentation.
   - Message persistence
   - Testing and validation
 
+## Testing
+
+- **[Tests README](../../tests/README.md)** - Test documentation
+  - Unit tests for agents and tools
+  - Integration tests for Supabase
+  - End-to-end tests for the complete system
+  - Running tests locally
+
 - **[UV Migration Guide](UV_MIGRATION.md)** - Package manager migration
   - Command changes
   - Benefits of using UV

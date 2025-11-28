@@ -358,31 +358,31 @@ This implementation plan breaks down the multi-agent chat integration into discr
 
 ## Phase 5: Testing and Polish
 
-- [ ] 22. End-to-end testing
-  - [ ] 22.1 Test basic chat flow
+- [x] 22. End-to-end testing
+  - [x] 22.1 Test basic chat flow
     - Send message and receive response
     - Verify streaming works correctly
     - Check message persistence
     - _Requirements: 14.1, 14.2, 14.3, 15.2_
   
-  - [ ] 22.2 Test agent routing
+  - [x] 22.2 Test agent routing
     - Send queries for each business domain
     - Verify correct agent is invoked
     - Check response quality
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6, 12.7, 12.8, 12.9_
   
-  - [ ] 22.3 Test multi-agent coordination
+  - [x] 22.3 Test multi-agent coordination
     - Send queries requiring multiple agents
     - Verify responses are merged correctly
     - _Requirements: 12.12_
   
-  - [ ] 22.4 Test voice mode
+  - [x] 22.4 Test voice mode
     - Activate voice mode
     - Send voice transcript
     - Verify TTS works
     - _Requirements: 17.1, 17.2, 17.3, 17.4_
   
-  - [ ] 22.5 Test error scenarios
+  - [x] 22.5 Test error scenarios
     - Network failures
     - API errors
     - Invalid data

@@ -67,10 +67,20 @@ Content-Type: application/json
 GET /api/conversations/{conversation_id}?user_id=uuid
 ```
 
+**Response Codes:**
+- `200`: Conversation with messages returned
+- `404`: Conversation not found or unauthorized
+- `500`: Internal server error
+
 #### Delete Conversation
 ```
 DELETE /api/conversations/{conversation_id}?user_id=uuid
 ```
+
+**Response Codes:**
+- `200`: Conversation deleted successfully
+- `404`: Conversation not found or unauthorized
+- `500`: Internal server error
 
 ## Streaming Format
 
