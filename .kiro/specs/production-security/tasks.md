@@ -27,8 +27,8 @@
 - [x] 2. Checkpoint - Verify database schema changes
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 3. Backend Authentication Infrastructure
-  - [ ] 3.1 Create auth_middleware.py with JWT validation
+- [-] 3. Backend Authentication Infrastructure
+  - [x] 3.1 Create auth_middleware.py with JWT validation
     - Implement AuthenticationError exception class with error codes
     - Implement validate_jwt() function using Supabase auth.get_user()
     - Implement extract_user_id() convenience function
@@ -39,7 +39,7 @@
   - [ ]* 3.3 Write property test for user ID extraction consistency
     - **Property 3: User ID Extraction Consistency**
     - **Validates: Requirements 1.5**
-  - [ ] 3.4 Update supabase_client.py with user-scoped client support
+  - [x] 3.4 Update supabase_client.py with user-scoped client support
     - Add create_user_scoped_client(user_jwt) method to SupabaseClientWrapper
     - Add verify_key_configuration() method for startup validation
     - Add SUPABASE_ANON_KEY environment variable support
@@ -48,13 +48,13 @@
   - [ ]* 3.5 Write property test for user-scoped client creation
     - **Property 2: User-Scoped Client Creation**
     - **Validates: Requirements 1.2, 13.2**
-  - [ ] 3.6 Update backend/config.py with new settings
+  - [x] 3.6 Update backend/config.py with new settings
     - Add supabase_anon_key setting
     - Add environment setting (development/production)
     - Add system_user_id setting for testing
     - _Requirements: 6.1, 6.2, 12.1_
 
-- [ ] 4. Checkpoint - Verify authentication infrastructure
+- [x] 4. Checkpoint - Verify authentication infrastructure
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 5. Backend API JWT Integration

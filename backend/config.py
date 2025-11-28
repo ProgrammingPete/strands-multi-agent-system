@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     # Supabase Configuration
     supabase_url: str = os.getenv("SUPABASE_URL", "")
     supabase_service_key: str = os.getenv("SUPABASE_SERVICE_KEY", "")
+    supabase_anon_key: str = os.getenv("SUPABASE_ANON_KEY", "")
     
     # AWS Configuration
     aws_region: str = os.getenv("AWS_REGION", "us-east-1")
@@ -28,6 +29,12 @@ class Settings(BaseSettings):
     # API Configuration
     api_host: str = os.getenv("API_HOST", "0.0.0.0")
     api_port: int = int(os.getenv("API_PORT", "8000"))
+    
+    # Environment Configuration
+    environment: str = os.getenv("ENVIRONMENT", "development")
+    
+    # System User Configuration (for testing)
+    system_user_id: str = os.getenv("SYSTEM_USER_ID", "00000000-0000-0000-0000-000000000000")
     
     # CORS Configuration
     cors_origins: list[str] = [
@@ -41,6 +48,16 @@ class Settings(BaseSettings):
     max_retry_attempts: int = 3
     base_retry_delay: float = 1.0
     max_retry_delay: float = 10.0
+    
+    @property
+    def is_production(self) -> bool:
+        """Check if running in production environment."""
+        return self.environment.lower() == "production"
+    
+    @property
+    def is_development(self) -> bool:
+        """Check if running in development environment."""
+        return self.environment.lower() == "development"
     
     class Config:
         env_file = ".env"

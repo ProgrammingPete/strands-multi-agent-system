@@ -6,12 +6,13 @@ This module provides a robust Supabase client with:
 - Connection pooling
 - Error handling and logging
 - Environment-based configuration
+- User-scoped client creation for RLS enforcement
 """
 
 import os
 import logging
 import asyncio
-from typing import Optional, TypeVar, Callable, Any
+from typing import Optional, TypeVar, Callable, Any, Dict, List
 from functools import wraps
 from supabase import create_client, Client
 from supabase.lib.client_options import ClientOptions
@@ -205,6 +206,102 @@ class SupabaseClientWrapper:
         except Exception as e:
             logger.error(f"Supabase health check failed: {str(e)}")
             return False
+    
+    def create_user_scoped_client(self, user_jwt: str) -> Client:
+        """
+        Create a Supabase client scoped to a specific user.
+        
+        This client respects RLS policies by using the anon key with
+        the user's JWT token in the Authorization header. All queries
+        made with this client will be filtered by RLS policies.
+        
+        Args:
+            user_jwt: User's JWT token (without 'Bearer ' prefix)
+            
+        Returns:
+            Supabase client configured with user JWT and anon key
+            
+        Raises:
+            SupabaseConnectionError: If SUPABASE_ANON_KEY is not configured
+        """
+        supabase_url = os.getenv("SUPABASE_URL")
+        anon_key = os.getenv("SUPABASE_ANON_KEY")
+        
+        if not supabase_url:
+            raise SupabaseConnectionError("SUPABASE_URL not configured")
+        
+        if not anon_key:
+            raise SupabaseConnectionError(
+                "SUPABASE_ANON_KEY not configured - user-scoped operations unavailable"
+            )
+        
+        # Strip 'Bearer ' prefix if present
+        if user_jwt.startswith("Bearer "):
+            user_jwt = user_jwt[7:]
+        
+        # Create client with anon key and user JWT in Authorization header
+        # This ensures RLS policies are enforced based on the user's identity
+        options = ClientOptions(
+            headers={
+                "Authorization": f"Bearer {user_jwt}"
+            }
+        )
+        
+        client = create_client(
+            supabase_url=supabase_url,
+            supabase_key=anon_key,
+            options=options
+        )
+        
+        logger.debug("Created user-scoped Supabase client")
+        return client
+    
+    def verify_key_configuration(self) -> Dict[str, Any]:
+        """
+        Verify Supabase key configuration on startup.
+        
+        Logs warnings if using secret key in production or if
+        anon key is not configured for user-scoped operations.
+        
+        Returns:
+            dict with:
+                - key_type: 'service_key' or 'anon_key'
+                - has_anon_key: bool indicating if anon key is available
+                - is_valid: bool indicating if configuration is valid
+                - warnings: list of warning messages
+        """
+        service_key = os.getenv("SUPABASE_SERVICE_KEY")
+        anon_key = os.getenv("SUPABASE_ANON_KEY")
+        environment = os.getenv("ENVIRONMENT", "development")
+        
+        warnings: List[str] = []
+        
+        # Check for service key in production
+        if service_key and environment == "production":
+            warning_msg = "WARNING: SUPABASE_SERVICE_KEY is set in production - RLS will be bypassed for service key operations"
+            warnings.append(warning_msg)
+            logger.warning(warning_msg)
+        
+        # Check for missing anon key
+        if not anon_key:
+            warning_msg = "WARNING: SUPABASE_ANON_KEY not configured - user-scoped operations unavailable"
+            warnings.append(warning_msg)
+            logger.warning(warning_msg)
+        
+        # Log if using service key (RLS bypass)
+        if service_key:
+            logger.info("Service key configured - RLS will be bypassed for service key client")
+        
+        # Determine key type being used by default client
+        key_type = "service_key" if service_key else "anon_key"
+        
+        return {
+            "key_type": key_type,
+            "has_anon_key": bool(anon_key),
+            "is_valid": bool(anon_key),  # Valid if anon key is available for user operations
+            "warnings": warnings,
+            "environment": environment
+        }
 
 
 # Global instance

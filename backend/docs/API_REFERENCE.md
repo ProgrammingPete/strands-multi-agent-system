@@ -10,6 +10,7 @@ backend/
 ├── main.py                  # FastAPI application and endpoints
 ├── config.py                # Configuration and settings
 ├── models.py                # Pydantic models for validation
+├── auth_middleware.py       # JWT validation and authentication
 ├── chat_service.py          # Chat streaming service
 ├── conversation_service.py  # Conversation management service
 ├── context_manager.py       # Context management
@@ -161,7 +162,8 @@ All configuration is managed through environment variables and the `config.py` m
 ```bash
 # Supabase Configuration
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your-service-key-here
+SUPABASE_ANON_KEY=your-anon-key-here          # Required for user operations
+SUPABASE_SERVICE_KEY=your-service-key-here    # Optional, dev only
 
 # AWS Configuration
 AWS_REGION=us-east-1
@@ -173,6 +175,23 @@ BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
 # API Configuration
 API_HOST=0.0.0.0
 API_PORT=8000
+
+# Environment Configuration
+ENVIRONMENT=development                        # or "production"
+SYSTEM_USER_ID=00000000-0000-0000-0000-000000000000  # For testing
+```
+
+### Configuration Properties
+
+The `settings` object provides helper properties:
+
+```python
+from backend.config import settings
+
+settings.is_production  # True if ENVIRONMENT=production
+settings.is_development # True if ENVIRONMENT=development
+settings.supabase_anon_key  # Anon key for user-scoped operations
+settings.system_user_id     # System user ID for testing
 ```
 
 ## Logging
