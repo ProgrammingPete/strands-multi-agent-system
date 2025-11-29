@@ -57,8 +57,8 @@
 - [x] 4. Checkpoint - Verify authentication infrastructure
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Backend API JWT Integration
-  - [ ] 5.1 Update main.py with JWT authentication
+- [x] 5. Backend API JWT Integration
+  - [x] 5.1 Update main.py with JWT authentication
     - Import auth middleware functions
     - Add authorization header parameter to /api/chat/stream endpoint
     - Extract and validate JWT before processing requests
@@ -68,7 +68,7 @@
   - [ ]* 5.2 Write property test for invalid token rejection
     - **Property 16: Invalid Token Rejection**
     - **Validates: Requirements 9.3**
-  - [ ] 5.3 Update chat_service.py to propagate JWT
+  - [x] 5.3 Update chat_service.py to propagate JWT
     - Add jwt_token parameter to stream_chat_response
     - Pass JWT to agent invocations
     - Update context manager to use user-scoped clients
@@ -77,7 +77,7 @@
     - **Property 9: Backend API User ID Propagation**
     - **Validates: Requirements 4.4**
 
-- [ ] 6. Checkpoint - Verify backend API integration
+- [x] 6. Checkpoint - Verify backend API integration
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 7. Agent Tools Refactoring

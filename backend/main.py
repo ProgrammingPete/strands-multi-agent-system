@@ -3,7 +3,8 @@ FastAPI backend service for multi-agent chat system.
 Provides REST API endpoints for chat streaming and conversation management.
 """
 import logging
-from fastapi import FastAPI, HTTPException, Request
+from typing import Optional
+from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from contextlib import asynccontextmanager
@@ -18,6 +19,7 @@ from backend.models import (
 )
 from backend.chat_service import ChatService
 from backend.conversation_service import ConversationService
+from backend.auth_middleware import validate_jwt, AuthenticationError
 
 # Configure logging
 logging.basicConfig(
@@ -97,25 +99,100 @@ async def health_check():
 
 
 @app.post("/api/chat/stream")
-async def stream_chat(request: ChatRequest):
+async def stream_chat(
+    request: ChatRequest,
+    authorization: Optional[str] = Header(None)
+):
     """
-    Stream chat response using Server-Sent Events.
+    Stream chat response using Server-Sent Events with JWT authentication.
     
     Performance optimizations (Task 23.2):
     - Disabled all buffering for minimal latency
     - Added streaming-specific headers
     - Optimized for real-time token delivery
     
+    Security (Task 5.1):
+    - JWT validation before processing requests
+    - User ID verification against JWT claims
+    - Appropriate HTTP errors for auth failures
+    
     Args:
         request: Chat request with message and context
+        authorization: Bearer token from Authorization header
         
     Returns:
         StreamingResponse with SSE format
+        
+    Raises:
+        HTTPException 401: Missing or invalid authorization header
+        HTTPException 403: User ID mismatch between request and JWT
     """
     logger.info(f"Received chat request for conversation {request.conversation_id}")
     
+    # Extract and validate JWT token
+    jwt_token = None
+    validated_user_id = None
+    
+    if authorization:
+        # Extract JWT from Authorization header
+        if not authorization.startswith("Bearer "):
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "code": "MALFORMED_TOKEN",
+                    "message": "Authorization header must use Bearer scheme",
+                    "userMessage": "Invalid authentication format. Please log in again."
+                }
+            )
+        
+        jwt_token = authorization.replace("Bearer ", "")
+        
+        try:
+            # Validate JWT and extract user_id
+            validated_user_id = validate_jwt(jwt_token)
+        except AuthenticationError as e:
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "code": e.code,
+                    "message": e.message,
+                    "userMessage": e.user_message
+                }
+            )
+        
+        # Verify user_id in request matches JWT
+        if request.user_id != validated_user_id:
+            logger.warning(
+                f"User ID mismatch: request={request.user_id}, jwt={validated_user_id}"
+            )
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "code": "USER_ID_MISMATCH",
+                    "message": "User ID in request does not match authenticated user",
+                    "userMessage": "You are not authorized to perform this action."
+                }
+            )
+    else:
+        # Check environment - in production, JWT is required
+        environment = settings.environment if hasattr(settings, 'environment') else "development"
+        if environment == "production":
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "code": "MISSING_TOKEN",
+                    "message": "Authorization header is required",
+                    "userMessage": "Authentication required. Please log in."
+                }
+            )
+        else:
+            # Development mode: allow requests without JWT (with warning)
+            logger.warning(
+                f"Request without JWT in {environment} mode - RLS may be bypassed"
+            )
+    
     return StreamingResponse(
-        chat_service.stream_chat_response(request),
+        chat_service.stream_chat_response(request, jwt_token),
         media_type="text/event-stream",
         headers={
             # Disable all caching for real-time streaming

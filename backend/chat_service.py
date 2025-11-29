@@ -48,13 +48,15 @@ class ChatService:
     
     async def stream_chat_response(
         self,
-        request: ChatRequest
+        request: ChatRequest,
+        jwt_token: str = None
     ) -> AsyncGenerator[str, None]:
         """
         Stream chat response from supervisor agent using Server-Sent Events format.
         
         Args:
             request: Chat request with message and context
+            jwt_token: Optional JWT token for user-scoped operations (passed to agents)
             
         Yields:
             SSE-formatted strings with streaming chunks
@@ -81,7 +83,7 @@ class ChatService:
             full_response = []
             
             # Stream response from supervisor agent
-            async for chunk in self._stream_from_agent(request.message, context_with_user, request.user_id):
+            async for chunk in self._stream_from_agent(request.message, context_with_user, request.user_id, jwt_token):
                 # Collect tokens for full response
                 if chunk.type == "token" and chunk.content:
                     full_response.append(chunk.content)
@@ -124,7 +126,8 @@ class ChatService:
         self,
         message: str,
         context: str,
-        user_id: str
+        user_id: str,
+        jwt_token: str = None
     ) -> AsyncGenerator[StreamChunk, None]:
         """
         Stream response from supervisor agent with optimized latency.
@@ -134,10 +137,15 @@ class ChatService:
         - Token batching to reduce SSE overhead
         - Optimized async sleep intervals (5ms vs 10ms)
         
+        Security (Task 5.3):
+        - JWT token propagated to agent invocations
+        - User-scoped clients used when JWT is provided
+        
         Args:
             message: User message
             context: Conversation context (includes user_id)
             user_id: User ID for tool calls
+            jwt_token: Optional JWT token for user-scoped database operations
             
         Yields:
             StreamChunk objects with tokens and tool calls
@@ -149,6 +157,13 @@ class ChatService:
         
         # Store user_id in environment for tools to access
         os.environ['CURRENT_USER_ID'] = user_id
+        
+        # Store JWT token in environment for tools to create user-scoped clients
+        if jwt_token:
+            os.environ['CURRENT_USER_JWT'] = jwt_token
+        elif 'CURRENT_USER_JWT' in os.environ:
+            # Clear any previous JWT if not provided
+            del os.environ['CURRENT_USER_JWT']
         
         # Thread-safe queue for streaming events
         event_queue: queue.Queue = queue.Queue()
