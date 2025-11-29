@@ -27,7 +27,7 @@
 - [x] 2. Checkpoint - Verify database schema changes
   - Ensure all tests pass, ask the user if questions arise.
 
-- [-] 3. Backend Authentication Infrastructure
+- [x] 3. Backend Authentication Infrastructure
   - [x] 3.1 Create auth_middleware.py with JWT validation
     - Implement AuthenticationError exception class with error codes
     - Implement validate_jwt() function using Supabase auth.get_user()

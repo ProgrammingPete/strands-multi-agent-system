@@ -15,7 +15,16 @@ FastAPI service for the multi-agent chat system:
 - `chat_service.py`: Handles streaming chat responses using the supervisor agent
 - `conversation_service.py`: Manages conversations in Supabase
 - `context_manager.py`: Manages conversation context
+- `auth_middleware.py`: JWT authentication middleware for Supabase auth
 - `error_handler.py`: Error handling utilities
+
+### Backend Documentation (`backend/docs/`)
+- `INDEX.md`: Documentation index
+- `API_REFERENCE.md`: API endpoint documentation
+- `SECURITY.md`: Security implementation details
+- `QUICK_START.md`: Getting started guide
+- `CONTEXT_MANAGEMENT.md`: Context handling documentation
+- `PERFORMANCE_OPTIMIZATION.md`: Performance tuning guide
 
 ### API Endpoints
 - `POST /api/chat/stream`: Stream chat response (SSE)
