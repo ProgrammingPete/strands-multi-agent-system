@@ -27,11 +27,18 @@ FastAPI service for the multi-agent chat system:
 - `PERFORMANCE_OPTIMIZATION.md`: Performance tuning guide
 
 ### API Endpoints
-- `POST /api/chat/stream`: Stream chat response (SSE)
-- `GET /api/conversations`: List user conversations
+- `GET /`: Root health check
+- `GET /health`: Detailed health check
+- `POST /api/chat/stream`: Stream chat response (SSE) with JWT auth
+- `GET /api/conversations`: List user conversations (paginated)
 - `POST /api/conversations`: Create conversation
-- `GET /api/conversations/{id}`: Get conversation with messages
+- `GET /api/conversations/{id}`: Get conversation with messages (paginated)
 - `DELETE /api/conversations/{id}`: Delete conversation
+
+### Authentication
+- JWT validation via `Authorization: Bearer <token>` header
+- Required in production, optional in development
+- User ID verification against JWT claims
 
 ## Agents Directory (`agents/`)
 Strands agent implementations:

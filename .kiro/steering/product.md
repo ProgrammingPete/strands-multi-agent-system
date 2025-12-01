@@ -13,8 +13,15 @@ The system uses a Supervisor-Agent pattern:
 ## Backend API
 A FastAPI service provides REST endpoints for:
 - Streaming chat responses via Server-Sent Events (SSE)
-- Conversation management (create, list, get, delete)
+- Conversation management (create, list, get, delete) with pagination
+- JWT authentication (required in production, optional in development)
 - Integration with Supabase for data persistence
+
+## Security Features
+- JWT token validation for authenticated requests
+- User ID verification against JWT claims
+- Environment-based auth enforcement (strict in production)
+- Structured error responses with user-friendly messages
 
 ## Current Implementation Status
 - ✅ Invoices Agent: Invoice creation, viewing, updating, payment tracking
