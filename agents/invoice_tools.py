@@ -3,6 +3,9 @@ Supabase tools for invoice operations.
 
 This module provides specialized tools for invoice management including
 get, create, update, and delete operations on the invoices table.
+
+All tools require a user_id parameter and optionally accept a user_jwt
+for user-scoped operations with RLS enforcement.
 """
 
 import json
@@ -15,27 +18,101 @@ import os
 # Add parent directory to path to import utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from utils.supabase_client import get_supabase_client, SupabaseQueryError
+from utils.supabase_client import get_supabase_client, SupabaseQueryError, SupabaseConnectionError
 
 logger = logging.getLogger(__name__)
 
-# System test user ID - used when no user_id is provided
-# This allows the agent to work without requiring user context
-SYSTEM_USER_ID = os.getenv("SYSTEM_USER_ID", "00000000-0000-0000-0000-000000000000")
+
+class AuthenticationError(Exception):
+    """
+    Raised when authentication fails for agent tool operations.
+    
+    Attributes:
+        message: Technical error message for logging
+        code: Error code for programmatic handling
+        user_message: User-friendly error message for display
+    """
+    
+    def __init__(self, message: str, code: str):
+        self.message = message
+        self.code = code
+        self.user_message = self._get_user_message(code)
+        super().__init__(self.message)
+        
+    def _get_user_message(self, code: str) -> str:
+        """Get user-friendly error message based on error code."""
+        messages = {
+            "MISSING_TOKEN": "Authentication required. Please log in.",
+            "MISSING_USER_ID": "User identification required.",
+        }
+        return messages.get(code, "Authentication error. Please try again.")
+
+
+def _get_supabase_client_for_operation(user_id: str, user_jwt: Optional[str] = None):
+    """
+    Get the appropriate Supabase client based on environment and JWT availability.
+    
+    In production mode, JWT is required and a user-scoped client is created.
+    In development mode, service key fallback is allowed with a warning.
+    
+    Args:
+        user_id: The user ID for the operation (required)
+        user_jwt: Optional JWT token for user-scoped client creation
+        
+    Returns:
+        Tuple of (client, is_user_scoped) where:
+            - client: Supabase client (either user-scoped or service key)
+            - is_user_scoped: True if using user-scoped client with RLS
+            
+    Raises:
+        AuthenticationError: If JWT is required but not provided (production mode)
+    """
+    environment = os.getenv("ENVIRONMENT", "development")
+    supabase_wrapper = get_supabase_client()
+    
+    if user_jwt:
+        # Production path: Use user-scoped client with RLS enforcement
+        try:
+            client = supabase_wrapper.create_user_scoped_client(user_jwt)
+            logger.debug(f"Using user-scoped client for user {user_id}")
+            return client, True
+        except SupabaseConnectionError as e:
+            logger.error(f"Failed to create user-scoped client: {str(e)}")
+            if environment == "production":
+                raise AuthenticationError(
+                    f"Failed to create user-scoped client: {str(e)}",
+                    "MISSING_TOKEN"
+                )
+            # Fall through to development fallback
+            logger.warning("Falling back to service key client in development mode")
+    
+    if environment == "production":
+        # Production without JWT: Fail securely
+        raise AuthenticationError(
+            "JWT required in production environment",
+            "MISSING_TOKEN"
+        )
+    
+    # Development path: Use service key (bypasses RLS)
+    logger.warning(f"Using service key - RLS bypassed (development mode) for user {user_id}")
+    return supabase_wrapper, False
 
 
 @tool
 def get_invoices(
-    user_id: Optional[str] = None,
+    user_id: str,
+    user_jwt: Optional[str] = None,
     status: Optional[str] = None,
     client_id: Optional[str] = None,
     limit: int = 10
 ) -> str:
     """
-    Fetch invoices from Supabase.
+    Fetch invoices from Supabase for a specific user.
+    RLS policies automatically filter by user_id when using user-scoped client.
     
     Args:
-        user_id: Optional user ID to fetch invoices for (defaults to current authenticated user)
+        user_id: User ID to fetch invoices for (required)
+        user_jwt: Optional JWT token for user-scoped client creation
         status: Optional status filter (draft, sent, viewed, partial, paid, overdue, cancelled)
         client_id: Optional client ID filter
         limit: Maximum number of invoices to return (default 10, max 100)
@@ -44,19 +121,24 @@ def get_invoices(
         JSON string of invoices with details including line items, amounts, and dates
     """
     try:
-        supabase = get_supabase_client()
-        
-        # Use current user ID from environment if not provided
         if not user_id:
-            user_id = os.getenv('CURRENT_USER_ID', SYSTEM_USER_ID)
-            logger.info(f"Using user_id from context: {user_id}")
+            return json.dumps({
+                "error": "user_id is required",
+                "user_message": "User identification is required to fetch invoices."
+            })
+        
+        client, is_user_scoped = _get_supabase_client_for_operation(user_id, user_jwt)
         
         # Validate limit
         limit = min(limit, 100)
         
-        # Build query - Note: invoices table doesn't have user_id, so we'll fetch all
-        # In production, you'd filter by user_id through a join or RLS policy
-        query = supabase.table('invoices').select('*')
+        # Build query - RLS automatically filters by user_id when using user-scoped client
+        if is_user_scoped:
+            # User-scoped client: RLS handles filtering
+            query = client.schema("api").table('invoices').select('*')
+        else:
+            # Service key client (development): Use wrapper's table method
+            query = client.table('invoices').select('*')
         
         # Apply status filter if provided
         if status:
@@ -72,10 +154,13 @@ def get_invoices(
         # Apply limit
         query = query.limit(limit)
         
-        # Execute query with retry logic
-        result = supabase.execute_query(lambda: query.execute())
+        # Execute query
+        if is_user_scoped:
+            result = query.execute()
+        else:
+            result = client.execute_query(lambda: query.execute())
         
-        logger.info(f"Successfully fetched {len(result.data)} invoices")
+        logger.info(f"Successfully fetched {len(result.data)} invoices for user {user_id}")
         
         return json.dumps({
             "success": True,
@@ -83,6 +168,13 @@ def get_invoices(
             "count": len(result.data)
         })
         
+    except AuthenticationError as e:
+        logger.error(f"Authentication error fetching invoices: {str(e)}")
+        return json.dumps({
+            "error": e.message,
+            "code": e.code,
+            "user_message": e.user_message
+        })
     except SupabaseQueryError as e:
         logger.error(f"Failed to fetch invoices: {str(e)}")
         return json.dumps({
@@ -98,11 +190,17 @@ def get_invoices(
 
 
 @tool
-def create_invoice(data: str) -> str:
+def create_invoice(
+    user_id: str,
+    data: str,
+    user_jwt: Optional[str] = None
+) -> str:
     """
-    Create a new invoice in Supabase.
+    Create a new invoice in Supabase for a specific user.
+    The user_id is automatically set on the record for RLS enforcement.
     
     Args:
+        user_id: User ID creating the invoice (required)
         data: JSON string containing invoice data. Required fields:
             - invoice_number: Unique invoice number
             - client_name: Name of the client
@@ -121,12 +219,19 @@ def create_invoice(data: str) -> str:
             - notes: Additional notes
             - terms: Payment terms
             - status: Invoice status (defaults to 'draft')
+        user_jwt: Optional JWT token for user-scoped client creation
     
     Returns:
         JSON string with created invoice or error message
     """
     try:
-        supabase = get_supabase_client()
+        if not user_id:
+            return json.dumps({
+                "error": "user_id is required",
+                "user_message": "User identification is required to create an invoice."
+            })
+        
+        client, is_user_scoped = _get_supabase_client_for_operation(user_id, user_jwt)
         
         # Parse input data
         try:
@@ -150,12 +255,18 @@ def create_invoice(data: str) -> str:
         if 'status' not in invoice_data:
             invoice_data['status'] = 'draft'
         
-        # Execute insert with retry logic
-        result = supabase.execute_query(
-            lambda: supabase.table('invoices').insert(invoice_data).execute()
-        )
+        # Set user_id on the record for RLS
+        invoice_data['user_id'] = user_id
         
-        logger.info(f"Successfully created invoice: {invoice_data.get('invoice_number')}")
+        # Execute insert
+        if is_user_scoped:
+            result = client.schema("api").table('invoices').insert(invoice_data).execute()
+        else:
+            result = client.execute_query(
+                lambda: client.table('invoices').insert(invoice_data).execute()
+            )
+        
+        logger.info(f"Successfully created invoice {invoice_data.get('invoice_number')} for user {user_id}")
         
         return json.dumps({
             "success": True,
@@ -163,6 +274,13 @@ def create_invoice(data: str) -> str:
             "message": "Successfully created invoice"
         })
         
+    except AuthenticationError as e:
+        logger.error(f"Authentication error creating invoice: {str(e)}")
+        return json.dumps({
+            "error": e.message,
+            "code": e.code,
+            "user_message": e.user_message
+        })
     except SupabaseQueryError as e:
         logger.error(f"Failed to create invoice: {str(e)}")
         return json.dumps({
@@ -178,11 +296,18 @@ def create_invoice(data: str) -> str:
 
 
 @tool
-def update_invoice(invoice_id: str, data: str) -> str:
+def update_invoice(
+    user_id: str,
+    invoice_id: str,
+    data: str,
+    user_jwt: Optional[str] = None
+) -> str:
     """
     Update an existing invoice in Supabase.
+    RLS policies ensure users can only update their own invoices.
     
     Args:
+        user_id: User ID performing the update (required)
         invoice_id: The UUID of the invoice to update
         data: JSON string containing fields to update. Can include:
             - status: Invoice status (draft, sent, viewed, partial, paid, overdue, cancelled)
@@ -192,12 +317,19 @@ def update_invoice(invoice_id: str, data: str) -> str:
             - subtotal, tax_amount, discount_amount, total_amount: Financial updates
             - notes, terms: Additional information
             - Any other invoice fields
+        user_jwt: Optional JWT token for user-scoped client creation
     
     Returns:
         JSON string with updated invoice or error message
     """
     try:
-        supabase = get_supabase_client()
+        if not user_id:
+            return json.dumps({
+                "error": "user_id is required",
+                "user_message": "User identification is required to update an invoice."
+            })
+        
+        client, is_user_scoped = _get_supabase_client_for_operation(user_id, user_jwt)
         
         # Parse update data
         try:
@@ -209,16 +341,21 @@ def update_invoice(invoice_id: str, data: str) -> str:
             })
         
         # Build and execute update query
-        query = supabase.table('invoices').update(update_data).eq('id', invoice_id)
-        result = supabase.execute_query(lambda: query.execute())
+        # RLS automatically ensures user can only update their own invoices
+        if is_user_scoped:
+            query = client.schema("api").table('invoices').update(update_data).eq('id', invoice_id)
+            result = query.execute()
+        else:
+            query = client.table('invoices').update(update_data).eq('id', invoice_id)
+            result = client.execute_query(lambda: query.execute())
         
         if not result.data:
             return json.dumps({
-                "error": "Invoice not found",
+                "error": "Invoice not found or access denied",
                 "user_message": "Could not find the invoice to update. Please check the invoice ID."
             })
         
-        logger.info(f"Successfully updated invoice: {invoice_id}")
+        logger.info(f"Successfully updated invoice {invoice_id} for user {user_id}")
         
         return json.dumps({
             "success": True,
@@ -226,6 +363,13 @@ def update_invoice(invoice_id: str, data: str) -> str:
             "message": "Successfully updated invoice"
         })
         
+    except AuthenticationError as e:
+        logger.error(f"Authentication error updating invoice: {str(e)}")
+        return json.dumps({
+            "error": e.message,
+            "code": e.code,
+            "user_message": e.user_message
+        })
     except SupabaseQueryError as e:
         logger.error(f"Failed to update invoice: {str(e)}")
         return json.dumps({
@@ -241,18 +385,32 @@ def update_invoice(invoice_id: str, data: str) -> str:
 
 
 @tool
-def delete_invoice(invoice_id: str, confirm: bool = False) -> str:
+def delete_invoice(
+    user_id: str,
+    invoice_id: str,
+    confirm: bool = False,
+    user_jwt: Optional[str] = None
+) -> str:
     """
     Delete an invoice from Supabase.
+    RLS policies ensure users can only delete their own invoices.
     
     Args:
+        user_id: User ID performing the deletion (required)
         invoice_id: The UUID of the invoice to delete
         confirm: Must be True to confirm deletion (safety check)
+        user_jwt: Optional JWT token for user-scoped client creation
     
     Returns:
         JSON string with deletion result or error message
     """
     try:
+        if not user_id:
+            return json.dumps({
+                "error": "user_id is required",
+                "user_message": "User identification is required to delete an invoice."
+            })
+        
         # Require explicit confirmation
         if not confirm:
             return json.dumps({
@@ -260,25 +418,36 @@ def delete_invoice(invoice_id: str, confirm: bool = False) -> str:
                 "user_message": "Please confirm that you want to delete this invoice. This action cannot be undone."
             })
         
-        supabase = get_supabase_client()
+        client, is_user_scoped = _get_supabase_client_for_operation(user_id, user_jwt)
         
-        # Execute delete with retry logic
-        query = supabase.table('invoices').delete().eq('id', invoice_id)
-        result = supabase.execute_query(lambda: query.execute())
+        # Execute delete - RLS automatically ensures user can only delete their own invoices
+        if is_user_scoped:
+            query = client.schema("api").table('invoices').delete().eq('id', invoice_id)
+            result = query.execute()
+        else:
+            query = client.table('invoices').delete().eq('id', invoice_id)
+            result = client.execute_query(lambda: query.execute())
         
         if not result.data:
             return json.dumps({
-                "error": "Invoice not found",
+                "error": "Invoice not found or access denied",
                 "user_message": "Could not find the invoice to delete. Please check the invoice ID."
             })
         
-        logger.info(f"Successfully deleted invoice: {invoice_id}")
+        logger.info(f"Successfully deleted invoice {invoice_id} for user {user_id}")
         
         return json.dumps({
             "success": True,
             "message": "Successfully deleted invoice"
         })
         
+    except AuthenticationError as e:
+        logger.error(f"Authentication error deleting invoice: {str(e)}")
+        return json.dumps({
+            "error": e.message,
+            "code": e.code,
+            "user_message": e.user_message
+        })
     except SupabaseQueryError as e:
         logger.error(f"Failed to delete invoice: {str(e)}")
         return json.dumps({

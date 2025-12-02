@@ -3,9 +3,14 @@ Invoices Agent - Specialized agent for invoice management.
 
 This agent handles invoice creation, viewing, updating, and payment tracking
 for the Canvalo painting contractor business management system.
+
+Security: This agent receives user_id and user_jwt from the supervisor
+and passes them to all tool invocations for RLS enforcement.
 """
 
 import logging
+import os
+from functools import partial
 from strands import Agent, tool
 from strands.models import BedrockModel
 
@@ -30,11 +35,15 @@ Your responsibilities:
 - Format invoice data in a clear, professional manner
 - Help users understand invoice status and payment history
 
+IMPORTANT: When calling tools, you MUST include the user_id parameter that was provided to you.
+The user_id is required for all database operations to ensure proper data isolation.
+
 When creating invoices:
 1. Collect all required information: client, items/services, amounts, dates
 2. Ensure all line items have descriptions and amounts
 3. Calculate totals correctly
 4. Set appropriate due dates and payment terms
+5. ALWAYS include the user_id when calling create_invoice
 
 When displaying invoices:
 1. Format currency values clearly (e.g., $1,234.56)
@@ -48,6 +57,7 @@ When updating invoices:
 2. Validate any changes to amounts or dates
 3. Update payment status when payments are received
 4. Maintain audit trail of changes
+5. ALWAYS include the user_id when calling update_invoice
 
 Guidelines:
 - Be concise in responses
@@ -66,8 +76,21 @@ bedrock_model = BedrockModel(
     max_tokens=4096
 )
 
+
+def _get_user_context():
+    """
+    Get user context from environment variables.
+    
+    Returns:
+        Tuple of (user_id, user_jwt) from environment
+    """
+    user_id = os.environ.get('CURRENT_USER_ID')
+    user_jwt = os.environ.get('CURRENT_USER_JWT')
+    return user_id, user_jwt
+
+
 @tool
-def invoices_agent_tool(query: str) -> str:
+def invoices_agent_tool(query: str, user_id: str = None, user_jwt: str = None) -> str:
     """
     Invoice management agent that handles invoice creation, viewing, updating, and payment tracking.
     
@@ -80,11 +103,29 @@ def invoices_agent_tool(query: str) -> str:
     
     Args:
         query: The user's query about invoices
+        user_id: User ID for database operations (required for RLS)
+        user_jwt: Optional JWT token for user-scoped client creation
     
     Returns:
         Response from the invoices agent
     """
     try:
+        # Get user context from environment if not provided directly
+        env_user_id, env_user_jwt = _get_user_context()
+        
+        # Use provided values or fall back to environment
+        effective_user_id = user_id or env_user_id
+        effective_user_jwt = user_jwt or env_user_jwt
+        
+        if not effective_user_id:
+            logger.warning("No user_id provided to invoices_agent_tool")
+            return "I apologize, but I cannot process your request without user identification. Please ensure you are logged in."
+        
+        logger.info(f"Invoices agent processing query for user {effective_user_id}: {query}")
+        
+        # Enhance the query with user context for the agent
+        enhanced_query = f"[User ID: {effective_user_id}]\n\n{query}"
+        
         # Create agent with invoice management tools
         agent = Agent(
             model=bedrock_model,
@@ -97,8 +138,7 @@ def invoices_agent_tool(query: str) -> str:
             ]
         )
         
-        logger.info(f"Invoices agent processing query: {query}")
-        response = agent(query)
+        response = agent(enhanced_query)
         logger.info("Invoices agent completed successfully")
         
         return str(response)
@@ -114,6 +154,9 @@ if __name__ == "__main__":
     print("Invoices Agent Test Mode")
     print("=" * 50)
     print("Type 'exit' to quit\n")
+    
+    # Set a test user ID for direct testing
+    os.environ['CURRENT_USER_ID'] = os.getenv('SYSTEM_USER_ID', '00000000-0000-0000-0000-000000000000')
     
     try:
         while True:

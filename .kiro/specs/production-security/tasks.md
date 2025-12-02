@@ -80,8 +80,8 @@
 - [x] 6. Checkpoint - Verify backend API integration
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Agent Tools Refactoring
-  - [ ] 7.1 Update invoice_tools.py for user-scoped operations
+- [x] 7. Agent Tools Refactoring
+  - [x] 7.1 Update invoice_tools.py for user-scoped operations
     - Add user_id as required first parameter to all tool functions
     - Add optional user_jwt parameter for user-scoped client creation
     - Implement environment-based behavior (development allows service key fallback, production requires JWT)
@@ -91,19 +91,19 @@
   - [ ]* 7.2 Write property test for agent tool user-scoped client usage
     - **Property 8: Agent Tool User-Scoped Client Usage**
     - **Validates: Requirements 4.2**
-  - [ ] 7.3 Update project_tools.py for user-scoped operations
+  - [x] 7.3 Update project_tools.py for user-scoped operations
     - Add user_id as required first parameter
     - Use create_user_scoped_client() for database access
     - _Requirements: 4.1, 4.2, 4.3_
-  - [ ] 7.4 Update appointment_tools.py for user-scoped operations
+  - [x] 7.4 Update appointment_tools.py for user-scoped operations
     - Add user_id as required first parameter
     - Use create_user_scoped_client() for database access
     - _Requirements: 4.1, 4.2, 4.3_
-  - [ ] 7.5 Update remaining agent tools (proposals, contacts, reviews, campaigns, tasks, goals)
+  - [x] 7.5 Update remaining agent tools (proposals, contacts, reviews, campaigns, tasks, goals)
     - Add user_id as required first parameter to all tools
     - Use create_user_scoped_client() for database access
     - _Requirements: 4.1, 4.2, 4.3_
-  - [ ] 7.6 Update supervisor agent to pass user_id to specialist agents
+  - [x] 7.6 Update supervisor agent to pass user_id to specialist agents
     - Extract user_id from request context
     - Pass user_id to all specialist agent invocations
     - _Requirements: 4.4_
