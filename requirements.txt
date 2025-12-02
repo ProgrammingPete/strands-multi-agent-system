@@ -9,3 +9,4 @@ pydantic
 pydantic-settings
 pytest
 pytest-asyncio
+hypothesis

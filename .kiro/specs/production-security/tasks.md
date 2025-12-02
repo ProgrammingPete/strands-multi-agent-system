@@ -10,7 +10,7 @@
     - Enable RLS on all api schema tables
     - Create SELECT, INSERT, UPDATE, DELETE policies using auth.uid() = user_id
     - _Requirements: 2.3, 2.4, 2.5, 2.6, 10.3, 10.4_
-  - [ ]* 1.3 Write property test for RLS SELECT enforcement
+  - [x] 1.3 Write property test for RLS SELECT enforcement
     - **Property 4: RLS Policy Enforcement for SELECT**
     - **Validates: Requirements 2.4, 9.1**
   - [ ]* 1.4 Write property test for RLS INSERT enforcement

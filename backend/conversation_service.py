@@ -284,6 +284,9 @@ class ConversationService:
             
         Returns:
             True if deleted successfully
+            
+        Raises:
+            ValueError: If conversation not found or user not authorized
         """
         if not self.supabase:
             raise RuntimeError("Supabase client not initialized")
@@ -291,17 +294,16 @@ class ConversationService:
         try:
             logger.info(f"Deleting conversation {conversation_id}")
             
-            # Verify ownership
+            # Verify ownership (don't use single() to avoid error when not found)
             conv_response = (
                 self.supabase.table("agent_conversations")
                 .select("id")
                 .eq("id", conversation_id)
                 .eq("user_id", user_id)
-                .single()
                 .execute()
             )
             
-            if not conv_response.data:
+            if not conv_response.data or len(conv_response.data) == 0:
                 raise ValueError(f"Conversation {conversation_id} not found or unauthorized")
             
             # Delete conversation (messages will cascade delete)
@@ -310,6 +312,9 @@ class ConversationService:
             logger.info(f"Deleted conversation {conversation_id}")
             return True
             
+        except ValueError:
+            # Re-raise ValueError for not found cases
+            raise
         except Exception as e:
             logger.error(f"Error deleting conversation: {e}", exc_info=True)
             raise
