@@ -8,7 +8,7 @@ The system provides AI-powered business automation through specialized agents th
 ## Architecture
 The system uses a Supervisor-Agent pattern:
 - **Supervisor Agent**: Routes user queries to the appropriate specialized agent
-- **Specialized Agents**: Domain-specific agents (currently Invoices Agent is implemented)
+- **Specialized Agents**: Domain-specific agents with Supabase tools
 
 ## Backend API
 A FastAPI service provides REST endpoints for:
@@ -20,14 +20,30 @@ A FastAPI service provides REST endpoints for:
 ## Security Features
 - JWT token validation for authenticated requests
 - User ID verification against JWT claims
+- Row-Level Security (RLS) enforcement via Supabase
 - Environment-based auth enforcement (strict in production)
+- Admin authentication for service-level operations
 - Structured error responses with user-friendly messages
 
 ## Current Implementation Status
-- ✅ Invoices Agent: Invoice creation, viewing, updating, payment tracking
-- 🚧 Planned: Appointments, Projects, Proposals, Contacts, Reviews, Campaigns, Tasks, Settings agents
+### Implemented Tools
+- ✅ Invoices: Invoice creation, viewing, updating, payment tracking
+- ✅ Appointments: Scheduling and calendar management
+- ✅ Campaigns: Marketing campaign management
+- ✅ Contacts: Client/supplier CRM
+- ✅ Goals: Business goal tracking
+- ✅ Projects: Project management
+- ✅ Proposals: Estimates and proposals
+- ✅ Reviews: Customer review management
+- ✅ Tasks: Task tracking
+
+### Testing
+- ✅ Unit tests for core functionality
+- ✅ E2E integration tests
+- ✅ RLS property-based tests
+- ✅ Context management tests
 
 ## Integration
 - Frontend: React/TypeScript application (CanvaloFrontend)
-- Database: Supabase
+- Database: Supabase with Row-Level Security
 - LLM: Amazon Bedrock (Nova Lite by default)

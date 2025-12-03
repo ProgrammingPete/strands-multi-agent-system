@@ -5,6 +5,7 @@
 - `requirements.txt`: Python dependencies
 - `.env`: Environment variables (Supabase, AWS, Bedrock config)
 - `start_backend.sh`: Script to start the FastAPI backend
+- `run_tests.sh`: Script to run the test suite
 
 ## Backend Directory (`backend/`)
 FastAPI service for the multi-agent chat system:
@@ -16,6 +17,7 @@ FastAPI service for the multi-agent chat system:
 - `conversation_service.py`: Manages conversations in Supabase
 - `context_manager.py`: Manages conversation context
 - `auth_middleware.py`: JWT authentication middleware for Supabase auth
+- `admin_auth.py`: Admin authentication for service-level operations
 - `error_handler.py`: Error handling utilities
 
 ### Backend Documentation (`backend/docs/`)
@@ -39,13 +41,26 @@ FastAPI service for the multi-agent chat system:
 - JWT validation via `Authorization: Bearer <token>` header
 - Required in production, optional in development
 - User ID verification against JWT claims
+- Admin auth for service-level operations
 
 ## Agents Directory (`agents/`)
 Strands agent implementations:
 
+### Core Agents
 - `supervisor.py`: Main orchestrator that routes to specialized agents
-- `invoices_agent.py`: Invoice management agent (create, view, update, delete)
-- `invoice_tools.py`: Supabase tools for invoice CRUD operations
+- `invoices_agent.py`: Invoice management agent
+
+### Domain Tools (Supabase CRUD operations)
+- `invoice_tools.py`: Invoice operations
+- `appointment_tools.py`: Appointment scheduling
+- `campaign_tools.py`: Marketing campaigns
+- `contact_tools.py`: Client/supplier contacts
+- `goal_tools.py`: Business goals
+- `project_tools.py`: Project management
+- `proposal_tools.py`: Estimates and proposals
+- `review_tools.py`: Customer reviews
+- `task_tools.py`: Task management
+- `tool_utils.py`: Shared utilities for tools
 
 ### Agent Pattern
 1. Define system prompt with capabilities and guidelines
@@ -55,7 +70,23 @@ Strands agent implementations:
 5. Expose as tool for supervisor using `@tool` decorator
 
 ## Tests Directory (`tests/`)
-Pytest test files for backend and agents.
+Comprehensive test suite:
+
+### Test Files
+- `conftest.py`: Pytest fixtures and configuration
+- `test_foundation.py`: Core functionality tests
+- `test_server.py`: API endpoint tests
+- `test_e2e.py`: End-to-end integration tests
+- `test_context_manager.py`: Context management tests
+- `test_invoices_agent.py`: Invoice agent tests
+- `test_invoices_agent_batch.py`: Batch invoice tests
+- `test_rls_properties.py`: Row-Level Security property tests
+- `test_cleanup.py`: Test data cleanup utilities
+
+### Verification Scripts
+- `verify_integration.py`: Integration verification
+- `verify_supabase_key.py`: Supabase key validation
+- `verify_context_manager.py`: Context manager verification
 
 ## Common Commands
 
@@ -68,5 +99,8 @@ uv run uvicorn backend.main:app --reload --port 8000
 
 ### Run Tests
 ```bash
-uv run pytest tests/
+uv run pytest tests/                    # Run all tests
+uv run pytest tests/ -v                 # Verbose output
+uv run pytest tests/test_e2e.py         # Run specific test file
+uv run pytest tests/ -k "test_name"     # Run tests matching pattern
 ```
