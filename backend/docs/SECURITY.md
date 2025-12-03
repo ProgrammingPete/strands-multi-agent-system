@@ -143,14 +143,102 @@ SUPABASE_ANON_KEY=eyJhbGci...        # For user operations
 SUPABASE_SERVICE_KEY=sb_secret_...   # For system operations (dev only)
 ENVIRONMENT=development
 SYSTEM_USER_ID=00000000-0000-0000-0000-000000000000
+# ADMIN_API_KEY=your-secure-key      # Optional in development
 ```
 
 ### Production (.env.production)
 ```bash
 SUPABASE_URL=https://project.supabase.co
 SUPABASE_ANON_KEY=eyJhbGci...        # For user operations
-# SUPABASE_SERVICE_KEY removed in production
+# SUPABASE_SERVICE_KEY removed in production - SECURITY REQUIREMENT
 ENVIRONMENT=production
+ADMIN_API_KEY=your-secure-admin-key  # Required for admin operations
+```
+
+See `.env.production.example` for a complete production configuration template.
+
+### Configuration Validation
+
+The backend validates configuration on startup:
+
+```python
+from backend.config import settings, validate_startup_configuration, ConfigurationError
+
+# Called automatically during app startup
+try:
+    validate_startup_configuration()
+except ConfigurationError as e:
+    # In production, this will prevent the app from starting
+    print(f"Configuration errors: {e.errors}")
+```
+
+**Production Validation Rules:**
+- `SUPABASE_SERVICE_KEY` must NOT be set (security risk - bypasses RLS)
+- `SUPABASE_ANON_KEY` must be set (required for user authentication)
+- `SUPABASE_URL` must be set
+
+## Admin Operations
+
+### Admin Authentication (`backend/admin_auth.py`)
+
+Admin operations that require the service key (which bypasses RLS) must be authenticated with an admin API key:
+
+```python
+from backend.admin_auth import validate_admin_operation, AdminAuthenticationError
+
+try:
+    # Validate admin credentials before privileged operation
+    validate_admin_operation(
+        api_key="admin-api-key",
+        operation="bulk_data_migration",
+        resource="invoices"
+    )
+except AdminAuthenticationError as e:
+    print(f"Admin auth failed: {e.code} - {e.message}")
+```
+
+### Getting Admin Client
+
+To get a Supabase client with service key for admin operations:
+
+```python
+from utils.supabase_client import get_supabase_client
+
+wrapper = get_supabase_client()
+admin_client = wrapper.get_admin_client(
+    admin_api_key="your-admin-key",
+    operation="data_migration",
+    resource="invoices"
+)
+# admin_client bypasses RLS - use with caution
+```
+
+### Admin Error Codes
+
+| Code | Description |
+|------|-------------|
+| `ADMIN_NOT_CONFIGURED` | ADMIN_API_KEY not set in production |
+| `ADMIN_KEY_REQUIRED` | No API key provided for admin operation |
+| `INVALID_ADMIN_KEY` | Provided API key doesn't match |
+
+### Generating Admin API Key
+
+Generate a secure admin API key:
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+### Admin Operation Logging
+
+All admin operations are logged for audit purposes:
+- Operation attempted (with timestamp)
+- Operation authorized/denied
+- Resource being accessed
+
+Example log output:
+```
+INFO - Admin operation attempted: operation=bulk_migration, resource=invoices, timestamp=2024-12-02T10:30:00
+WARNING - Admin client created for operation: bulk_migration. RLS policies will be bypassed.
 ```
 
 ## Security Best Practices
@@ -170,16 +258,21 @@ ENVIRONMENT=production
 - [x] Backend JWT validation middleware (`backend/auth_middleware.py`)
 - [x] User-scoped Supabase client factory (`utils/supabase_client.py`)
 - [x] Configuration settings for anon key and environment (`backend/config.py`)
+- [x] Backend API JWT integration (`backend/main.py`)
+- [x] Agent tools refactoring with user_id parameter
+- [x] Frontend JWT integration (`AgentService.ts`)
+- [x] Production environment configuration validation
+- [x] Admin operation authentication (`backend/admin_auth.py`)
+- [x] Multi-user data isolation testing
 
 ### In Progress 🔄
-- [ ] Backend API JWT integration (main.py endpoints)
-- [ ] Agent tools refactoring (user_id parameter)
-- [ ] Frontend JWT integration
+- [ ] Rate limiting implementation
+- [ ] Audit logging implementation
+- [ ] Test infrastructure updates
 
 ### Planned 📋
-- [ ] Rate limiting
-- [ ] Audit logging
 - [ ] Security monitoring and alerts
+- [ ] Brute-force attack detection
 
 ## Related Documentation
 

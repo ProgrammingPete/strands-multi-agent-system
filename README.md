@@ -109,13 +109,23 @@ cp .env.example .env
 ```
 
 Required environment variables:
-```
+```bash
+# Supabase Configuration
 SUPABASE_URL=your_supabase_url
-SUPABASE_SERVICE_KEY=your_service_key
+SUPABASE_ANON_KEY=your_anon_key        # For user operations (RLS enforced)
+SUPABASE_SERVICE_KEY=your_service_key  # For system operations (dev only)
+
+# AWS Configuration
 AWS_REGION=us-east-1
 AWS_PROFILE=default
 AWS_BEARER_TOKEN_BEDROCK=your-bedrock-token-here
+
+# Environment Configuration
+ENVIRONMENT=development                 # Set to 'production' for production
+SYSTEM_USER_ID=00000000-0000-0000-0000-000000000000  # For testing
 ```
+
+**Production Note:** In production, do NOT include `SUPABASE_SERVICE_KEY` as it bypasses Row Level Security. See [Security Guide](backend/docs/SECURITY.md) for details.
 
 ## Usage
 
@@ -258,8 +268,13 @@ def example_agent_tool(query: str) -> str:
   - Backend JWT validation middleware ✅
   - User-scoped database clients ✅
   - Configuration settings (anon key, environment) ✅
-  - Backend API JWT integration (in progress)
-  - Agent tools refactoring (in progress)
+  - Backend API JWT integration ✅
+  - Agent tools refactoring ✅
+  - Frontend JWT integration ✅
+  - Production environment configuration ✅
+  - Admin operation authentication ✅
+  - Rate limiting (in progress)
+  - Audit logging (in progress)
 - Additional specialized agents (appointments, projects, etc.)
 - Frontend integration
 - Streaming responses

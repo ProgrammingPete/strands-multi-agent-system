@@ -6,6 +6,8 @@ This test suite performs end-to-end testing of the invoices agent by:
 1. Sending various test prompts to the agent
 2. Verifying the agent uses the correct tools
 3. Checking results against actual Supabase data using MCP server
+
+**Requirements: 12.3** - All batch tests pass user_id to agent tools
 """
 
 import sys
@@ -14,23 +16,42 @@ import json
 import uuid
 import re
 from datetime import datetime, timedelta
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from agents.invoices_agent import invoices_agent_tool
-from agents.invoice_tools import delete_invoice
+from agents.invoice_tools import delete_invoice, get_invoices
 
 
 class InvoicesBatchTester:
-    """Batch tester for invoices agent with Supabase verification."""
+    """
+    Batch tester for invoices agent with Supabase verification.
     
-    def __init__(self):
+    **Requirements: 12.3** - Uses SYSTEM_USER_ID for all test operations
+    """
+    
+    def __init__(self, user_id: Optional[str] = None):
+        """
+        Initialize the batch tester.
+        
+        Args:
+            user_id: Optional user ID to use for tests. If not provided,
+                    uses SYSTEM_USER_ID from environment.
+        """
         self.test_results = []
         self.test_invoice_ids = []  # Track created invoices for cleanup
         self.test_invoice_numbers = []  # Track invoice numbers for lookup
-        self.test_user_id = "test-user-" + str(uuid.uuid4())[:8]
+        # Use SYSTEM_USER_ID from environment for test data operations
+        self.test_user_id = user_id or os.getenv(
+            "SYSTEM_USER_ID", 
+            "00000000-0000-0000-0000-000000000000"
+        )
         
     def log_result(self, test_name: str, passed: bool, details: str = ""):
         """Log a test result."""
@@ -414,7 +435,11 @@ class InvoicesBatchTester:
             return False
     
     def cleanup_test_data(self):
-        """Clean up test invoices created during testing."""
+        """
+        Clean up test invoices created during testing.
+        
+        **Requirements: 12.5** - Track and remove test data after completion
+        """
         print("\n" + "=" * 60)
         print("CLEANUP: Removing Test Data")
         print("=" * 60)
@@ -427,8 +452,8 @@ class InvoicesBatchTester:
         if self.test_invoice_numbers and not self.test_invoice_ids:
             print(f"Looking up invoice IDs for {len(self.test_invoice_numbers)} test invoices...")
             try:
-                from agents.invoice_tools import get_invoices
-                result = get_invoices(limit=100)
+                # Pass user_id to get_invoices as required by Requirements 12.3
+                result = get_invoices(user_id=self.test_user_id, limit=100)
                 result_data = json.loads(result)
                 
                 if result_data.get("success"):
@@ -445,7 +470,12 @@ class InvoicesBatchTester:
         for invoice_id in self.test_invoice_ids:
             try:
                 print(f"Deleting invoice {invoice_id}...")
-                result = delete_invoice(invoice_id, confirm=True)
+                # Pass user_id to delete_invoice as required by Requirements 12.3
+                result = delete_invoice(
+                    user_id=self.test_user_id,
+                    invoice_id=invoice_id, 
+                    confirm=True
+                )
                 result_data = json.loads(result)
                 
                 if result_data.get("success"):
@@ -461,11 +491,16 @@ class InvoicesBatchTester:
         print(f"\nCleanup Summary: {deleted_count} deleted, {failed_count} failed")
     
     def run_all_tests(self) -> int:
-        """Run all batch tests and return exit code."""
+        """
+        Run all batch tests and return exit code.
+        
+        **Requirements: 12.3** - All tests use SYSTEM_USER_ID for operations
+        """
         print("\n" + "=" * 60)
         print("INVOICES AGENT BATCH TESTS")
         print("=" * 60)
-        print(f"Test User ID: {self.test_user_id}")
+        print(f"Test User ID (SYSTEM_USER_ID): {self.test_user_id}")
+        print(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
         print(f"Timestamp: {datetime.now().isoformat()}")
         print()
         
@@ -517,11 +552,21 @@ class InvoicesBatchTester:
             return 1
 
 
-def main():
-    """Main entry point for batch tests."""
-    tester = InvoicesBatchTester()
+def main(user_id: Optional[str] = None):
+    """
+    Main entry point for batch tests.
+    
+    Args:
+        user_id: Optional user ID to use for tests. If not provided,
+                uses SYSTEM_USER_ID from environment.
+    
+    **Requirements: 12.3** - Uses SYSTEM_USER_ID for test operations
+    """
+    tester = InvoicesBatchTester(user_id=user_id)
     return tester.run_all_tests()
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # Allow passing user_id as command line argument
+    user_id = sys.argv[1] if len(sys.argv) > 1 else None
+    sys.exit(main(user_id=user_id))

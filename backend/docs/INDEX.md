@@ -48,7 +48,9 @@ Welcome to the Canvalo FastAPI Backend documentation.
   - Row Level Security (RLS) policies
   - JWT authentication
   - User-scoped database clients
-  - Environment configuration
+  - Environment configuration (development vs production)
+  - Production configuration validation
+  - Admin operation authentication
   - Security best practices
 
 ## Testing

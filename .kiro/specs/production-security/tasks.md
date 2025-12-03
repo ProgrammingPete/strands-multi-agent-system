@@ -108,7 +108,7 @@
     - Pass user_id to all specialist agent invocations
     - _Requirements: 4.4_
 
-- [ ] 8. Checkpoint - Verify agent tools refactoring
+- [x] 8. Checkpoint - Verify agent tools refactoring
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 9. Rate Limiting Implementation
@@ -147,8 +147,8 @@
 - [ ] 11. Checkpoint - Verify rate limiting and audit logging
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 12. Frontend Integration
-  - [ ] 12.1 Update AgentService.ts to include JWT in requests
+- [x] 12. Frontend Integration
+  - [x] 12.1 Update AgentService.ts to include JWT in requests
     - Get user session from Supabase Auth
     - Include JWT in Authorization header as Bearer token
     - Handle authentication errors appropriately
@@ -156,32 +156,32 @@
   - [ ]* 12.2 Write property test for authorization header inclusion
     - **Property 10: Frontend Authorization Header Inclusion**
     - **Validates: Requirements 5.2, 5.5**
-  - [ ] 12.3 Implement unauthenticated user handling
+  - [x] 12.3 Implement unauthenticated user handling
     - Prevent API requests when user is not authenticated
     - Display authentication error message
     - _Requirements: 5.3_
-  - [ ] 12.4 Implement session expiration handling
+  - [x] 12.4 Implement session expiration handling
     - Detect session expiration
     - Refresh token or prompt for re-authentication
     - _Requirements: 5.4_
 
-- [ ] 13. Checkpoint - Verify frontend integration
+- [x] 13. Checkpoint - Verify frontend integration
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 14. Multi-User Data Isolation Testing
-  - [ ]* 14.1 Write property test for multi-user data isolation
+- [x] 14. Multi-User Data Isolation Testing
+  - [x]* 14.1 Write property test for multi-user data isolation
     - **Property 15: Multi-User Data Isolation**
     - **Validates: Requirements 9.1, 9.4**
-  - [ ]* 14.2 Write property test for RLS CRUD operation completeness
+  - [x]* 14.2 Write property test for RLS CRUD operation completeness
     - **Property 7: RLS CRUD Operation Completeness**
     - **Validates: Requirements 2.3, 9.2**
 
-- [ ] 15. Test Infrastructure Updates
-  - [ ] 15.1 Update test fixtures to use SYSTEM_USER_ID
+- [x] 15. Test Infrastructure Updates
+  - [x] 15.1 Update test fixtures to use SYSTEM_USER_ID
     - Configure tests to use SYSTEM_USER_ID environment variable
     - Associate test data with system user account
     - _Requirements: 12.1, 12.2_
-  - [ ] 15.2 Update batch tests to pass user_id to agent tools
+  - [x] 15.2 Update batch tests to pass user_id to agent tools
     - Update InvoicesBatchTester to pass user_id
     - Update all batch test classes to include user_id parameter
     - _Requirements: 12.3_
@@ -189,17 +189,17 @@
     - Create two test users
     - Verify complete data isolation between users
     - _Requirements: 12.4_
-  - [ ] 15.4 Implement test data cleanup
+  - [x] 15.4 Implement test data cleanup
     - Track created test data
     - Remove test data after test completion
     - _Requirements: 12.5_
 
-- [ ] 16. Production Environment Configuration
-  - [ ] 16.1 Create production environment configuration
+- [x] 16. Production Environment Configuration
+  - [x] 16.1 Create production environment configuration
     - Remove SUPABASE_SERVICE_KEY from production environment
     - Verify only SUPABASE_ANON_KEY is configured
     - _Requirements: 6.1, 6.2_
-  - [ ] 16.2 Implement admin operation authentication
+  - [x] 16.2 Implement admin operation authentication
     - Restrict secret key usage to admin-only operations
     - Validate admin credentials before using secret key
     - _Requirements: 6.3, 6.4_

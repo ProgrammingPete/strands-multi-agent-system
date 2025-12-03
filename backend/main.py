@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from contextlib import asynccontextmanager
 
-from backend.config import settings
+from backend.config import settings, validate_startup_configuration, ConfigurationError
 from backend.models import (
     ChatRequest,
     ConversationCreate,
@@ -39,8 +39,21 @@ async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events."""
     # Startup
     logger.info("Starting FastAPI backend service")
+    logger.info(f"Environment: {settings.environment}")
     logger.info(f"Supabase URL: {settings.supabase_url}")
     logger.info(f"Bedrock Model: {settings.bedrock_model_id}")
+    
+    # Validate configuration for the current environment
+    # This will raise ConfigurationError in production if config is invalid
+    try:
+        validate_startup_configuration()
+        logger.info("Configuration validation passed")
+    except ConfigurationError as e:
+        logger.critical(f"Configuration validation failed: {e.message}")
+        for error in e.errors:
+            logger.critical(f"  - {error}")
+        raise
+    
     yield
     # Shutdown
     logger.info("Shutting down FastAPI backend service")

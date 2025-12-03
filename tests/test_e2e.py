@@ -87,9 +87,10 @@ def get_authenticated_user_id() -> Optional[str]:
     return None
 
 
-# Get authenticated user ID or fall back to environment variable
+# Get authenticated user ID or fall back to SYSTEM_USER_ID environment variable
+# **Requirements: 12.1** - Use SYSTEM_USER_ID for test operations
 TEST_USER_ID = get_authenticated_user_id() or os.environ.get(
-    "TEST_USER_ID", "00000000-0000-0000-0000-000000000000"
+    "SYSTEM_USER_ID", os.environ.get("TEST_USER_ID", "00000000-0000-0000-0000-000000000000")
 )
 
 

@@ -38,6 +38,33 @@ End-to-end tests for the complete multi-agent chat system:
 
 Requirements covered: 12.1-12.12, 14.1-14.5, 15.1-15.2, 16.1-16.5, 17.1-17.4
 
+### `test_rls_properties.py`
+Property-based tests for Row Level Security (RLS) policy enforcement:
+- **RLS SELECT Enforcement**: Verifies users can only see their own data
+- **Multi-User Data Isolation**: Ensures complete data isolation between users
+- **RLS CRUD Completeness**: Validates all CRUD operations have proper RLS policies
+
+Requirements covered: 2.3, 2.4, 9.1, 9.2, 9.4
+
+### `conftest.py`
+Pytest configuration and shared fixtures:
+- **System User Fixtures**: `system_user_id`, `test_environment`, `is_development_mode`
+- **Supabase Client Fixtures**: `supabase_client`, `user_scoped_client`
+- **Test Data Fixtures**: `test_invoice_data`, `test_project_data`, `test_contact_data`
+- **Data Cleanup Fixtures**: `test_data_tracker`, `cleanup_test_data`
+- **Agent Tool Fixtures**: `invoice_tools_with_user`
+
+Requirements covered: 12.1, 12.2, 12.3, 12.5
+
+### `test_cleanup.py`
+Test data cleanup utilities:
+- **TestDataCleanupManager**: Class for tracking and cleaning up test data
+- **test_data_context**: Context manager for automatic cleanup
+- **cleanup_test_invoices_by_prefix**: Utility for cleaning up test invoices
+- **cleanup_all_test_data_for_user**: Utility for cleaning up all user data
+
+Requirements covered: 12.5
+
 ## Running Tests
 
 ### Run All Tests
@@ -159,7 +186,11 @@ Current test coverage:
 - ✅ Phase 1 Foundation (supervisor, Supabase, CRUD tools)
 - ✅ Invoices Agent (agent, tools, integration)
 - ✅ End-to-End Tests (chat flow, streaming, routing, errors, conversations)
+- ✅ RLS Property Tests (data isolation, CRUD completeness)
+- ✅ Test Infrastructure (fixtures, cleanup, SYSTEM_USER_ID support)
 - 🔄 Additional agents (to be added as implemented)
+- 🔄 Rate Limiting Tests (to be implemented)
+- 🔄 Audit Logging Tests (to be implemented)
 
 ## Requirements
 
@@ -168,6 +199,73 @@ Tests require:
 - All project dependencies installed
 - Environment variables configured (`.env` file)
 - Supabase credentials (for integration tests)
+
+## Test User Configuration
+
+All tests use the `SYSTEM_USER_ID` environment variable to associate test data with a known user account. This ensures:
+- Test data is properly isolated
+- RLS policies can be tested correctly
+- Test cleanup can target specific user data
+
+### Environment Variables for Testing
+
+```bash
+# Required for test data operations
+SYSTEM_USER_ID=your-test-user-uuid
+
+# Optional: For JWT-based testing
+TEST_USER_JWT=your-test-jwt-token
+TEST_USER_EMAIL=test@example.com
+TEST_USER_PASSWORD=your-test-password
+```
+
+### Using Test Fixtures
+
+The `conftest.py` provides fixtures that automatically use `SYSTEM_USER_ID`:
+
+```python
+def test_create_invoice(system_user_id, test_invoice_data, cleanup_test_data):
+    """Test creating an invoice with automatic cleanup."""
+    # test_invoice_data already has user_id set to system_user_id
+    result = create_invoice(user_id=system_user_id, data=json.dumps(test_invoice_data))
+    
+    # Track for cleanup
+    result_data = json.loads(result)
+    if result_data.get("success"):
+        cleanup_test_data.track('invoices', result_data['data']['id'])
+    
+    assert result_data.get("success")
+```
+
+### Test Data Cleanup
+
+Use the cleanup utilities to manage test data:
+
+```python
+from tests.test_cleanup import test_data_context, cleanup_test_invoices_by_prefix
+
+# Automatic cleanup with context manager
+with test_data_context() as tracker:
+    # Create test data
+    invoice_id = create_test_invoice()
+    tracker.track('invoices', invoice_id)
+    
+    # Run tests...
+# Cleanup happens automatically
+
+# Manual cleanup by prefix
+cleanup_test_invoices_by_prefix("INV-TEST-")
+```
+
+### Command-Line Cleanup
+
+```bash
+# Clean up test invoices by prefix
+uv run python tests/test_cleanup.py --prefix "INV-TEST-"
+
+# Clean up ALL data for a specific user (use with caution)
+uv run python tests/test_cleanup.py --user-id "your-user-id" --all
+```
 
 ## Troubleshooting
 

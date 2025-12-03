@@ -8,6 +8,8 @@
 
 ## Configuration
 
+### Development Environment
+
 1. Copy `.env.example` to `.env`:
    ```bash
    cp .env.example .env
@@ -15,18 +17,38 @@
 
 2. Edit `.env` and add your credentials:
    ```bash
-   # Required for conversation management
+   # Required for Supabase
    SUPABASE_URL=https://your-project.supabase.co
-   SUPABASE_SERVICE_KEY=your-service-key-here
+   SUPABASE_ANON_KEY=your-anon-key-here      # For user operations (RLS enforced)
+   SUPABASE_SERVICE_KEY=your-service-key-here # For system operations (dev only)
    
    # Required for AI agents
    AWS_REGION=us-east-1
    BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
    
+   # Environment configuration
+   ENVIRONMENT=development
+   SYSTEM_USER_ID=00000000-0000-0000-0000-000000000000
+   
    # Optional - API configuration
    API_HOST=0.0.0.0
    API_PORT=8000
    ```
+
+### Production Environment
+
+For production, use `.env.production.example` as a template:
+```bash
+cp .env.production.example .env
+```
+
+**Important Production Security Requirements:**
+- Do NOT include `SUPABASE_SERVICE_KEY` (bypasses RLS security)
+- Must include `SUPABASE_ANON_KEY` (required for user authentication)
+- Set `ENVIRONMENT=production`
+- Set `ADMIN_API_KEY` for admin operations (generate with `python -c "import secrets; print(secrets.token_urlsafe(32))"`)
+
+See [SECURITY.md](SECURITY.md) for detailed security configuration.
 
 ## Running the Server
 
@@ -126,6 +148,16 @@ Watch the console output for request/response logs and errors
 
 ## Production Deployment
 
+### Security Checklist
+
+Before deploying to production:
+- [ ] Remove `SUPABASE_SERVICE_KEY` from environment
+- [ ] Set `SUPABASE_ANON_KEY` for user authentication
+- [ ] Set `ENVIRONMENT=production`
+- [ ] Generate and set `ADMIN_API_KEY` for admin operations
+- [ ] Configure CORS origins for your production domain
+- [ ] Enable HTTPS/TLS
+
 ### Using Docker
 ```dockerfile
 FROM python:3.13-slim
@@ -139,7 +171,8 @@ CMD ["uv", "run", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", 
 Build and run:
 ```bash
 docker build -t canvalo-backend .
-docker run -p 8000:8000 --env-file .env canvalo-backend
+# Use production env file (without SUPABASE_SERVICE_KEY)
+docker run -p 8000:8000 --env-file .env.production canvalo-backend
 ```
 
 ### Using systemd

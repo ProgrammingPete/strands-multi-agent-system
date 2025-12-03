@@ -302,6 +302,52 @@ class SupabaseClientWrapper:
             "warnings": warnings,
             "environment": environment
         }
+    
+    def get_admin_client(
+        self,
+        admin_api_key: str,
+        operation: str,
+        resource: Optional[str] = None
+    ) -> Client:
+        """
+        Get a Supabase client with service key for admin operations.
+        
+        This method validates admin credentials before returning a service key
+        client that bypasses RLS. Use with extreme caution and only for
+        legitimate admin operations.
+        
+        Args:
+            admin_api_key: The admin API key for authentication
+            operation: Description of the admin operation being performed
+            resource: Optional resource identifier being accessed
+            
+        Returns:
+            Supabase client with service key (bypasses RLS)
+            
+        Raises:
+            AdminAuthenticationError: If admin credentials are invalid
+            SupabaseConnectionError: If service key is not configured
+        """
+        from backend.admin_auth import validate_admin_operation, AdminAuthenticationError
+        
+        # Validate admin credentials first
+        validate_admin_operation(admin_api_key, operation, resource)
+        
+        # Verify service key is available
+        service_key = os.getenv("SUPABASE_SERVICE_KEY")
+        if not service_key:
+            raise SupabaseConnectionError(
+                "SUPABASE_SERVICE_KEY not configured - admin operations unavailable"
+            )
+        
+        # Log that service key is being used for admin operation
+        logger.warning(
+            f"Admin client created for operation: {operation}. "
+            "RLS policies will be bypassed."
+        )
+        
+        # Return the service key client
+        return self._client
 
 
 # Global instance
