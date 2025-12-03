@@ -40,11 +40,18 @@ class ConversationService:
             logger.warning("Conversation service will not be available")
             self.supabase = None
     
+    def _get_client(self, jwt_token: Optional[str] = None):
+        """Get appropriate Supabase client based on JWT availability."""
+        if jwt_token:
+            return self.supabase.create_user_scoped_client(jwt_token)
+        return self.supabase.client
+    
     async def list_conversations(
         self,
         user_id: str,
         limit: int = DEFAULT_CONVERSATION_LIMIT,
-        offset: int = 0
+        offset: int = 0,
+        jwt_token: Optional[str] = None
     ) -> Tuple[List[ConversationResponse], int]:
         """
         List conversations for a user with pagination support.
@@ -56,6 +63,7 @@ class ConversationService:
             user_id: User ID
             limit: Maximum number of conversations to return
             offset: Number of conversations to skip (for pagination)
+            jwt_token: Optional JWT token for user-scoped operations (RLS)
             
         Returns:
             Tuple of (list of conversations, total count)
@@ -69,10 +77,13 @@ class ConversationService:
             if not user_id:
                 raise ValueError("User ID is required")
             
+            # Use user-scoped client if JWT provided
+            client = self._get_client(jwt_token)
+            
             # Optimized query: select only needed columns for listing
             # Uses idx_agent_conversations_user index
             response = (
-                self.supabase.table("agent_conversations")
+                client.schema("api").table("agent_conversations")
                 .select("id, user_id, title, created_at, updated_at, last_message_at, message_count, metadata", count="exact")
                 .eq("user_id", user_id)
                 .order("updated_at", desc=True)
@@ -98,13 +109,15 @@ class ConversationService:
     
     async def create_conversation(
         self,
-        request: ConversationCreate
+        request: ConversationCreate,
+        jwt_token: Optional[str] = None
     ) -> ConversationResponse:
         """
         Create a new conversation.
         
         Args:
             request: Conversation creation request
+            jwt_token: Optional JWT token for user-scoped operations (RLS)
             
         Returns:
             Created conversation
@@ -121,11 +134,20 @@ class ConversationService:
                 "metadata": {},
             }
             
-            response = (
-                self.supabase.table("agent_conversations")
-                .insert(data)
-                .execute()
-            )
+            # Use user-scoped client if JWT provided (for RLS compliance)
+            if jwt_token:
+                client = self.supabase.create_user_scoped_client(jwt_token)
+                response = (
+                    client.schema("api").table("agent_conversations")
+                    .insert(data)
+                    .execute()
+                )
+            else:
+                response = (
+                    self.supabase.table("agent_conversations")
+                    .insert(data)
+                    .execute()
+                )
             
             conversation = ConversationResponse(**response.data[0])
             logger.info(f"Created conversation {conversation.id}")
@@ -140,7 +162,8 @@ class ConversationService:
         conversation_id: str,
         user_id: str,
         message_limit: int = DEFAULT_MESSAGE_LIMIT,
-        message_offset: int = 0
+        message_offset: int = 0,
+        jwt_token: Optional[str] = None
     ) -> ConversationWithMessages:
         """
         Get a conversation with its messages (paginated).
@@ -153,6 +176,7 @@ class ConversationService:
             user_id: User ID (for authorization)
             message_limit: Maximum number of messages to return
             message_offset: Number of messages to skip (for pagination)
+            jwt_token: Optional JWT token for user-scoped operations (RLS)
             
         Returns:
             Conversation with messages
@@ -166,9 +190,12 @@ class ConversationService:
             # Enforce maximum limit to prevent memory issues
             message_limit = min(message_limit, MAX_MESSAGE_LIMIT)
             
+            # Use user-scoped client if JWT provided
+            client = self._get_client(jwt_token)
+            
             # Get conversation (don't use single() to avoid error when not found)
             conv_response = (
-                self.supabase.table("agent_conversations")
+                client.schema("api").table("agent_conversations")
                 .select("id, user_id, title, created_at, updated_at, last_message_at, message_count, metadata")
                 .eq("id", conversation_id)
                 .eq("user_id", user_id)
@@ -184,7 +211,7 @@ class ConversationService:
             # Optimized message query: select only needed columns
             # Uses idx_agent_messages_conversation_covering for index-only scan
             msg_response = (
-                self.supabase.table("agent_messages")
+                client.schema("api").table("agent_messages")
                 .select("id, content, role, agent_type, metadata, created_at")
                 .eq("conversation_id", conversation_id)
                 .order("created_at", desc=False)
@@ -273,7 +300,8 @@ class ConversationService:
     async def delete_conversation(
         self,
         conversation_id: str,
-        user_id: str
+        user_id: str,
+        jwt_token: Optional[str] = None
     ) -> bool:
         """
         Delete a conversation and its messages.
@@ -281,6 +309,7 @@ class ConversationService:
         Args:
             conversation_id: Conversation ID
             user_id: User ID (for authorization)
+            jwt_token: Optional JWT token for user-scoped operations (RLS)
             
         Returns:
             True if deleted successfully
@@ -294,9 +323,12 @@ class ConversationService:
         try:
             logger.info(f"Deleting conversation {conversation_id}")
             
+            # Use user-scoped client if JWT provided
+            client = self._get_client(jwt_token)
+            
             # Verify ownership (don't use single() to avoid error when not found)
             conv_response = (
-                self.supabase.table("agent_conversations")
+                client.schema("api").table("agent_conversations")
                 .select("id")
                 .eq("id", conversation_id)
                 .eq("user_id", user_id)
@@ -307,7 +339,7 @@ class ConversationService:
                 raise ValueError(f"Conversation {conversation_id} not found or unauthorized")
             
             # Delete conversation (messages will cascade delete)
-            self.supabase.table("agent_conversations").delete().eq("id", conversation_id).execute()
+            client.schema("api").table("agent_conversations").delete().eq("id", conversation_id).execute()
             
             logger.info(f"Deleted conversation {conversation_id}")
             return True
@@ -325,7 +357,8 @@ class ConversationService:
         content: str,
         role: str,
         agent_type: Optional[str] = None,
-        metadata: Optional[dict] = None
+        metadata: Optional[dict] = None,
+        jwt_token: Optional[str] = None
     ) -> Message:
         """
         Save a message to a conversation.
@@ -336,6 +369,7 @@ class ConversationService:
             role: Message role (user or assistant)
             agent_type: Agent type (for assistant messages)
             metadata: Additional metadata
+            jwt_token: Optional JWT token for user-scoped operations (RLS)
             
         Returns:
             Saved message
@@ -354,8 +388,11 @@ class ConversationService:
                 "metadata": metadata or {},
             }
             
+            # Use user-scoped client if JWT provided
+            client = self._get_client(jwt_token)
+            
             response = (
-                self.supabase.table("agent_messages")
+                client.schema("api").table("agent_messages")
                 .insert(data)
                 .execute()
             )

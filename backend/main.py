@@ -224,7 +224,12 @@ async def stream_chat(
 
 
 @app.get("/api/conversations")
-async def list_conversations(user_id: str, limit: int = 50, offset: int = 0):
+async def list_conversations(
+    user_id: str,
+    limit: int = 50,
+    offset: int = 0,
+    authorization: Optional[str] = Header(None)
+):
     """
     List conversations for a user with pagination support.
     
@@ -232,13 +237,19 @@ async def list_conversations(user_id: str, limit: int = 50, offset: int = 0):
         user_id: User ID
         limit: Maximum number of conversations to return (default: 50)
         offset: Number of conversations to skip for pagination (default: 0)
+        authorization: Bearer token from Authorization header
         
     Returns:
         Object with conversations list and pagination metadata
     """
+    # Extract JWT token for user-scoped operations
+    jwt_token = None
+    if authorization and authorization.startswith("Bearer "):
+        jwt_token = authorization.replace("Bearer ", "")
+    
     try:
         conversations, total_count = await conversation_service.list_conversations(
-            user_id, limit, offset
+            user_id, limit, offset, jwt_token
         )
         return {
             "conversations": conversations,
@@ -253,18 +264,27 @@ async def list_conversations(user_id: str, limit: int = 50, offset: int = 0):
 
 
 @app.post("/api/conversations", response_model=ConversationResponse)
-async def create_conversation(request: ConversationCreate):
+async def create_conversation(
+    request: ConversationCreate,
+    authorization: Optional[str] = Header(None)
+):
     """
     Create a new conversation.
     
     Args:
         request: Conversation creation request
+        authorization: Bearer token from Authorization header
         
     Returns:
         Created conversation
     """
+    # Extract JWT token for user-scoped operations
+    jwt_token = None
+    if authorization and authorization.startswith("Bearer "):
+        jwt_token = authorization.replace("Bearer ", "")
+    
     try:
-        conversation = await conversation_service.create_conversation(request)
+        conversation = await conversation_service.create_conversation(request, jwt_token)
         return conversation
     except Exception as e:
         logger.error(f"Error creating conversation: {e}", exc_info=True)
@@ -276,7 +296,8 @@ async def get_conversation(
     conversation_id: str, 
     user_id: str,
     message_limit: int = 100,
-    message_offset: int = 0
+    message_offset: int = 0,
+    authorization: Optional[str] = Header(None)
 ):
     """
     Get a conversation with its messages (paginated).
@@ -286,13 +307,19 @@ async def get_conversation(
         user_id: User ID (for authorization)
         message_limit: Maximum number of messages to return (default: 100, max: 500)
         message_offset: Number of messages to skip for pagination (default: 0)
+        authorization: Bearer token from Authorization header
         
     Returns:
         Conversation with messages
     """
+    # Extract JWT token for user-scoped operations
+    jwt_token = None
+    if authorization and authorization.startswith("Bearer "):
+        jwt_token = authorization.replace("Bearer ", "")
+    
     try:
         conversation = await conversation_service.get_conversation(
-            conversation_id, user_id, message_limit, message_offset
+            conversation_id, user_id, message_limit, message_offset, jwt_token
         )
         return conversation
     except ValueError as e:
@@ -303,19 +330,29 @@ async def get_conversation(
 
 
 @app.delete("/api/conversations/{conversation_id}")
-async def delete_conversation(conversation_id: str, user_id: str):
+async def delete_conversation(
+    conversation_id: str,
+    user_id: str,
+    authorization: Optional[str] = Header(None)
+):
     """
     Delete a conversation and its messages.
     
     Args:
         conversation_id: Conversation ID
+        authorization: Bearer token from Authorization header
         user_id: User ID (for authorization)
         
     Returns:
         Success message
     """
+    # Extract JWT token for user-scoped operations
+    jwt_token = None
+    if authorization and authorization.startswith("Bearer "):
+        jwt_token = authorization.replace("Bearer ", "")
+    
     try:
-        await conversation_service.delete_conversation(conversation_id, user_id)
+        await conversation_service.delete_conversation(conversation_id, user_id, jwt_token)
         return {"status": "deleted", "conversation_id": conversation_id}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

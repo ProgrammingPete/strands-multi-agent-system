@@ -117,16 +117,28 @@ class SupabaseClientWrapper:
         """
         Initialize the Supabase client with configuration from environment variables.
         
+        In production, uses SUPABASE_ANON_KEY (respects RLS).
+        In development, prefers SUPABASE_SERVICE_KEY if available, falls back to anon key.
+        
         Raises:
             SupabaseConnectionError: If required environment variables are missing
                                     or connection fails
         """
         supabase_url = os.getenv("SUPABASE_URL")
-        supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
+        environment = os.getenv("ENVIRONMENT", "development")
+        
+        # In production, prefer anon key (respects RLS)
+        # In development, prefer service key if available (for admin operations)
+        if environment == "production":
+            supabase_key = os.getenv("SUPABASE_ANON_KEY")
+            if not supabase_key:
+                supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
+        else:
+            supabase_key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_ANON_KEY")
         
         if not supabase_url or not supabase_key:
             raise SupabaseConnectionError(
-                "Missing required environment variables: SUPABASE_URL and/or SUPABASE_SERVICE_KEY"
+                "Missing required environment variables: SUPABASE_URL and/or SUPABASE_ANON_KEY"
             )
         
         try:
@@ -239,19 +251,15 @@ class SupabaseClientWrapper:
         if user_jwt.startswith("Bearer "):
             user_jwt = user_jwt[7:]
         
-        # Create client with anon key and user JWT in Authorization header
-        # This ensures RLS policies are enforced based on the user's identity
-        options = ClientOptions(
-            headers={
-                "Authorization": f"Bearer {user_jwt}"
-            }
-        )
-        
+        # Create base client with anon key
         client = create_client(
             supabase_url=supabase_url,
-            supabase_key=anon_key,
-            options=options
+            supabase_key=anon_key
         )
+        
+        # Override the authorization header to use user's JWT
+        # This makes PostgREST treat requests as coming from that user
+        client.postgrest.auth(user_jwt)
         
         logger.debug("Created user-scoped Supabase client")
         return client

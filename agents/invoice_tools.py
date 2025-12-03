@@ -70,10 +70,13 @@ def _get_supabase_client_for_operation(user_id: str, user_jwt: Optional[str] = N
     environment = os.getenv("ENVIRONMENT", "development")
     supabase_wrapper = get_supabase_client()
     
-    if user_jwt:
+    # Check for JWT from parameter or environment variable (set by chat_service)
+    jwt_token = user_jwt or os.getenv("CURRENT_USER_JWT")
+    
+    if jwt_token:
         # Production path: Use user-scoped client with RLS enforcement
         try:
-            client = supabase_wrapper.create_user_scoped_client(user_jwt)
+            client = supabase_wrapper.create_user_scoped_client(jwt_token)
             logger.debug(f"Using user-scoped client for user {user_id}")
             return client, True
         except SupabaseConnectionError as e:
@@ -129,16 +132,18 @@ def get_invoices(
         
         client, is_user_scoped = _get_supabase_client_for_operation(user_id, user_jwt)
         
+        logger.info(f"get_invoices: user_id={user_id}, is_user_scoped={is_user_scoped}")
+        
         # Validate limit
         limit = min(limit, 100)
         
         # Build query - RLS automatically filters by user_id when using user-scoped client
         if is_user_scoped:
-            # User-scoped client: RLS handles filtering
-            query = client.schema("api").table('invoices').select('*')
+            # User-scoped client: RLS handles filtering, but we also add explicit filter for safety
+            query = client.schema("api").table('invoices').select('*').eq('user_id', user_id)
         else:
-            # Service key client (development): Use wrapper's table method
-            query = client.table('invoices').select('*')
+            # Service key client (development): Must filter by user_id explicitly
+            query = client.table('invoices').select('*').eq('user_id', user_id)
         
         # Apply status filter if provided
         if status:

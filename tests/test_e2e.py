@@ -29,33 +29,38 @@ BASE_URL = "http://localhost:8000"
 API_URL = f"{BASE_URL}/api"
 
 # Supabase configuration for authentication
+# Prefer anon key for production-safe testing, fall back to service key for dev
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY", "") or os.environ.get("SUPABASE_SERVICE_KEY", "")
 
 # Test user credentials (same as frontend uses)
 TEST_USER_EMAIL = os.environ.get("TEST_USER_EMAIL", "test@example.com")
 TEST_USER_PASSWORD = os.environ.get("TEST_USER_PASSWORD", "password123")
 
-# Cached authenticated user ID
+# Cached authentication data
 _authenticated_user_id: Optional[str] = None
+_authenticated_jwt_token: Optional[str] = None
 
 # Flag to track if conversation creation works (set during first test)
 _conversation_creation_works = None
 
 
-def get_authenticated_user_id() -> Optional[str]:
+def get_authenticated_credentials() -> tuple[Optional[str], Optional[str]]:
     """
-    Authenticate with Supabase using test credentials and return the user ID.
+    Authenticate with Supabase using test credentials and return user ID and JWT token.
     Uses the same credentials as the frontend for consistency.
-    """
-    global _authenticated_user_id
     
-    if _authenticated_user_id is not None:
-        return _authenticated_user_id
+    Returns:
+        Tuple of (user_id, jwt_token) or (None, None) if authentication fails
+    """
+    global _authenticated_user_id, _authenticated_jwt_token
+    
+    if _authenticated_user_id is not None and _authenticated_jwt_token is not None:
+        return _authenticated_user_id, _authenticated_jwt_token
     
     if not SUPABASE_URL or not SUPABASE_KEY:
         print("⚠ Supabase credentials not configured, using fallback user ID")
-        return None
+        return None, None
     
     try:
         # Use Supabase REST API to sign in
@@ -76,22 +81,31 @@ def get_authenticated_user_id() -> Optional[str]:
         if response.status_code == 200:
             data = response.json()
             _authenticated_user_id = data.get("user", {}).get("id")
-            if _authenticated_user_id:
+            _authenticated_jwt_token = data.get("access_token")
+            if _authenticated_user_id and _authenticated_jwt_token:
                 print(f"✓ Authenticated as user: {_authenticated_user_id}")
-                return _authenticated_user_id
+                return _authenticated_user_id, _authenticated_jwt_token
         else:
             print(f"⚠ Authentication failed: {response.status_code} - {response.text}")
     except Exception as e:
         print(f"⚠ Authentication error: {e}")
     
-    return None
+    return None, None
+
+
+def get_jwt_token() -> Optional[str]:
+    """Get the cached JWT token, authenticating if needed."""
+    _, token = get_authenticated_credentials()
+    return token
 
 
 # Get authenticated user ID or fall back to SYSTEM_USER_ID environment variable
 # **Requirements: 12.1** - Use SYSTEM_USER_ID for test operations
-TEST_USER_ID = get_authenticated_user_id() or os.environ.get(
+_user_id, _jwt_token = get_authenticated_credentials()
+TEST_USER_ID = _user_id or os.environ.get(
     "SYSTEM_USER_ID", os.environ.get("TEST_USER_ID", "00000000-0000-0000-0000-000000000000")
 )
+TEST_JWT_TOKEN = _jwt_token
 
 
 @dataclass
@@ -140,6 +154,14 @@ def collect_stream_response(response: requests.Response) -> tuple[str, List[Stre
     return ''.join(full_text), chunks
 
 
+def get_auth_headers() -> dict:
+    """Get authorization headers with JWT token if available."""
+    headers = {}
+    if TEST_JWT_TOKEN:
+        headers["Authorization"] = f"Bearer {TEST_JWT_TOKEN}"
+    return headers
+
+
 def create_test_conversation(title: str = "E2E Test Conversation") -> Optional[str]:
     """Create a test conversation and return its ID."""
     global _conversation_creation_works
@@ -147,14 +169,17 @@ def create_test_conversation(title: str = "E2E Test Conversation") -> Optional[s
     try:
         response = requests.post(
             f"{API_URL}/conversations",
-            json={"user_id": TEST_USER_ID, "title": title}
+            json={"user_id": TEST_USER_ID, "title": title},
+            headers=get_auth_headers()
         )
         if response.status_code in (200, 201):
             _conversation_creation_works = True
             return response.json().get('id')
         else:
+            print(f"Conversation creation failed: {response.status_code} - {response.text[:200]}")
             _conversation_creation_works = False
-    except Exception:
+    except Exception as e:
+        print(f"Conversation creation error: {e}")
         _conversation_creation_works = False
     return None
 
@@ -177,7 +202,8 @@ def delete_test_conversation(conversation_id: str) -> bool:
     try:
         response = requests.delete(
             f"{API_URL}/conversations/{conversation_id}",
-            params={"user_id": TEST_USER_ID}
+            params={"user_id": TEST_USER_ID},
+            headers=get_auth_headers()
         )
         return response.status_code in (200, 204)
     except Exception:
@@ -188,7 +214,8 @@ def send_chat_message(
     message: str,
     conversation_id: str,
     user_id: str = TEST_USER_ID,
-    history: List[Dict] = None
+    history: List[Dict] = None,
+    jwt_token: Optional[str] = None
 ) -> requests.Response:
     """Send a chat message and return the streaming response."""
     payload = {
@@ -198,11 +225,18 @@ def send_chat_message(
         "history": history or []
     }
     
+    headers = {"Accept": "text/event-stream"}
+    
+    # Use provided token, fall back to global test token
+    token = jwt_token or TEST_JWT_TOKEN
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    
     return requests.post(
         f"{API_URL}/chat/stream",
         json=payload,
         stream=True,
-        headers={"Accept": "text/event-stream"}
+        headers=headers
     )
 
 
@@ -562,8 +596,8 @@ class TestErrorScenarios:
             # Either gets a response or an error chunk
             assert len(chunks) > 0, "Should receive some response"
         else:
-            # 400 or 422 for validation error is also acceptable
-            assert response.status_code in (400, 422, 500)
+            # 400/422 for validation error, 401 for auth required (production), 500 for server error
+            assert response.status_code in (400, 401, 422, 500)
     
     def test_empty_message(self):
         """
@@ -663,7 +697,8 @@ class TestConversationManagement:
             json={
                 "user_id": TEST_USER_ID,
                 "title": "Test Conversation"
-            }
+            },
+            headers=get_auth_headers()
         )
         
         assert response.status_code in (200, 201)
@@ -679,7 +714,8 @@ class TestConversationManagement:
         # This should work even without a valid user (returns empty list)
         response = requests.get(
             f"{API_URL}/conversations",
-            params={"user_id": TEST_USER_ID}
+            params={"user_id": TEST_USER_ID},
+            headers=get_auth_headers()
         )
         
         assert response.status_code == 200
@@ -714,7 +750,8 @@ class TestConversationManagement:
             # Get conversation
             response = requests.get(
                 f"{API_URL}/conversations/{conv_id}",
-                params={"user_id": TEST_USER_ID}
+                params={"user_id": TEST_USER_ID},
+                headers=get_auth_headers()
             )
             
             assert response.status_code == 200
@@ -736,7 +773,8 @@ class TestConversationManagement:
         
         response = requests.delete(
             f"{API_URL}/conversations/{conv_id}",
-            params={"user_id": TEST_USER_ID}
+            params={"user_id": TEST_USER_ID},
+            headers=get_auth_headers()
         )
         
         assert response.status_code in (200, 204)

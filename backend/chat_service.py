@@ -70,7 +70,8 @@ class ChatService:
             await self.context_manager.save_message(
                 conversation_id=request.conversation_id,
                 content=request.message,
-                role="user"
+                role="user",
+                jwt_token=jwt_token
             )
             
             # Build context from history using context manager
@@ -98,7 +99,8 @@ class ChatService:
                     conversation_id=request.conversation_id,
                     content="".join(full_response),
                     role="assistant",
-                    agent_type=AgentType.SUPERVISOR.value
+                    agent_type=AgentType.SUPERVISOR.value,
+                    jwt_token=jwt_token
                 )
             
             # Send completion chunk

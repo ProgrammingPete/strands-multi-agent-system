@@ -279,7 +279,8 @@ class ContextManager:
         content: str,
         role: str,
         agent_type: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
+        jwt_token: Optional[str] = None
     ) -> Optional[Message]:
         """
         Save a message to the database and update conversation metadata.
@@ -290,6 +291,7 @@ class ContextManager:
             role: Message role (user or assistant)
             agent_type: Agent type (for assistant messages)
             metadata: Additional metadata
+            jwt_token: Optional JWT token for user-scoped operations (RLS)
             
         Returns:
             Saved message or None on error
@@ -300,7 +302,8 @@ class ContextManager:
                 content=content,
                 role=role,
                 agent_type=agent_type,
-                metadata=metadata
+                metadata=metadata,
+                jwt_token=jwt_token
             )
             
             logger.info(f"Saved {role} message to conversation {conversation_id}")
