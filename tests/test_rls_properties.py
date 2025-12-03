@@ -88,7 +88,11 @@ def get_all_records_for_table(table_name: str) -> List[Dict[str, Any]]:
     try:
         client = get_service_client()
         result = client.table(table_name).select('*').execute()
-        return result.data or []
+        records = result.data or []
+        logger.info(f"[{table_name}] Retrieved {len(records)} total records (service key)")
+        for record in records:
+            logger.debug(f"  - Record id={record.get('id')}, user_id={record.get('user_id')}")
+        return records
     except Exception as e:
         logger.error(f"Failed to get records from {table_name}: {e}")
         return []
@@ -99,7 +103,11 @@ def get_records_for_user(table_name: str, user_id: str) -> List[Dict[str, Any]]:
     try:
         client = get_service_client()
         result = client.table(table_name).select('*').eq('user_id', user_id).execute()
-        return result.data or []
+        records = result.data or []
+        logger.info(f"[{table_name}] Retrieved {len(records)} records for user_id={user_id}")
+        for record in records:
+            logger.debug(f"  - Record id={record.get('id')}, user_id={record.get('user_id')}")
+        return records
     except Exception as e:
         logger.error(f"Failed to get records for user {user_id} from {table_name}: {e}")
         return []
@@ -114,7 +122,9 @@ def get_distinct_user_ids(table_name: str) -> List[str]:
         for record in result.data or []:
             if record.get('user_id'):
                 user_ids.add(record['user_id'])
-        return list(user_ids)
+        user_ids_list = list(user_ids)
+        logger.info(f"[{table_name}] Found {len(user_ids_list)} distinct user_ids: {user_ids_list}")
+        return user_ids_list
     except Exception as e:
         logger.error(f"Failed to get user_ids from {table_name}: {e}")
         return []
