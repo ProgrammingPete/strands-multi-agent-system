@@ -48,24 +48,24 @@
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 5. Create Backend Stack
-  - [ ] 5.1 Create VPC construct with multi-AZ subnets
+  - [x] 5.1 Create VPC construct with multi-AZ subnets
     - Create VPC with public and private subnets
     - Configure at least 2 availability zones
     - Set up NAT gateways for private subnet internet access
     - _Requirements: 2.5_
-  - [ ]* 5.2 Write property test for VPC multi-AZ configuration
+  - [x] 5.2 Write property test for VPC multi-AZ configuration
     - **Property 2: VPC multi-AZ configuration**
     - **Validates: Requirements 2.5**
-  - [ ] 5.3 Create ECS Fargate service construct
+  - [x] 5.3 Create ECS Fargate service construct
     - Create ECS cluster
     - Define task definition with environment-specific CPU/memory
     - Configure container with Secrets Manager references
     - Set up health check configuration
     - _Requirements: 2.1, 2.4, 1.3, 1.4_
-  - [ ]* 5.4 Write property test for Secrets Manager integration
+  - [x] 5.4 Write property test for Secrets Manager integration
     - **Property 3: Secrets Manager integration**
     - **Validates: Requirements 2.4, 5.2**
-  - [ ] 5.5 Create Application Load Balancer
+  - [x] 5.5 Create Application Load Balancer
     - Configure ALB with HTTP listener for Beta/Gamma (auto-generated DNS)
     - Configure ALB with HTTPS listener and ACM certificate for Prod only
     - Configure target group with health checks
@@ -73,22 +73,22 @@
   - [ ]* 5.6 Write property test for ALB TLS termination (Prod only)
     - **Property 9: ALB TLS termination for Prod, HTTP for Beta/Gamma**
     - **Validates: Requirements 8.4, 8.5**
-  - [ ] 5.7 Configure auto-scaling for production
+  - [x] 5.7 Configure auto-scaling for production
     - Add auto-scaling policy based on CPU utilization
     - Set min/max task counts from environment config
     - _Requirements: 2.6_
-  - [ ]* 5.8 Write property test for auto-scaling configuration
+  - [x] 5.8 Write property test for auto-scaling configuration
     - **Property 12: Auto-scaling configuration**
     - **Validates: Requirements 2.6**
-  - [ ] 5.9 Configure IAM roles with least-privilege
+  - [x] 5.9 Configure IAM roles with least-privilege
     - Create task execution role with Secrets Manager access
     - Restrict permissions to specific secret ARN
     - _Requirements: 5.3_
-  - [ ]* 5.10 Write property test for IAM least-privilege
+  - [x] 5.10 Write property test for IAM least-privilege
     - **Property 4: IAM least-privilege for secrets**
     - **Validates: Requirements 5.3**
 
-- [ ] 6. Checkpoint - Ensure all tests pass
+- [x] 6. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 7. Create Frontend Stack
