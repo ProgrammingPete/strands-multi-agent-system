@@ -55,8 +55,14 @@ uv run uvicorn backend.main:app --reload --port 8000    # Alternative with hot r
 
 ### Testing
 ```bash
-uv run pytest tests/         # Run all tests
-uv run pytest tests/ -v      # Verbose output
+# Unit & property tests (no server required)
+uv run pytest tests/ --ignore=tests/integration -v
+
+# Integration tests (requires running server)
+uv run pytest tests/integration/ -v
+
+# All tests
+uv run pytest tests/ -v
 ```
 
 ### Running Agents Directly

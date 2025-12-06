@@ -70,18 +70,23 @@ Strands agent implementations:
 5. Expose as tool for supervisor using `@tool` decorator
 
 ## Tests Directory (`tests/`)
-Comprehensive test suite:
+Comprehensive test suite organized by test type:
 
-### Test Files
+### Unit & Property Tests (`tests/`)
+Tests that run without external dependencies:
 - `conftest.py`: Pytest fixtures and configuration
 - `test_foundation.py`: Core functionality tests
-- `test_server.py`: API endpoint tests
-- `test_e2e.py`: End-to-end integration tests
 - `test_context_manager.py`: Context management tests
 - `test_invoices_agent.py`: Invoice agent tests
 - `test_invoices_agent_batch.py`: Batch invoice tests
 - `test_rls_properties.py`: Row-Level Security property tests
+- `test_config_secrets_property.py`: Configuration source fallback property tests
 - `test_cleanup.py`: Test data cleanup utilities
+
+### Integration Tests (`tests/integration/`)
+Tests that require a running server:
+- `test_server.py`: API endpoint tests
+- `test_e2e.py`: End-to-end integration tests
 
 ### Verification Scripts
 - `verify_integration.py`: Integration verification
@@ -99,8 +104,12 @@ uv run uvicorn backend.main:app --reload --port 8000
 
 ### Run Tests
 ```bash
-uv run pytest tests/                    # Run all tests
-uv run pytest tests/ -v                 # Verbose output
-uv run pytest tests/test_e2e.py         # Run specific test file
-uv run pytest tests/ -k "test_name"     # Run tests matching pattern
+# Unit tests (no server required)
+uv run pytest tests/ --ignore=tests/integration -v
+
+# Integration tests (requires running server)
+uv run pytest tests/integration/ -v
+
+# All tests
+uv run pytest tests/ -v
 ```

@@ -1,0 +1,94 @@
+# .dockerignore for Canvalo Backend
+# Requirements: 1.1 - Exclude unnecessary files from Docker build context
+
+# Python virtual environment
+.venv/
+venv/
+env/
+.env.local
+.env.development
+.env.*.local
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Tests
+tests/
+test/
+*_test.py
+test_*.py
+conftest.py
+pytest.ini
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Kiro specs and configuration
+.kiro/
+
+# Hypothesis testing cache
+.hypothesis/
+
+# Local development files
+*.log
+*.tmp
+*.temp
+
+# uv lock file (dependencies are installed from pyproject.toml)
+# Keep uv.lock for reproducible builds
+# uv.lock
+
+# Environment files (secrets should come from Secrets Manager in production)
+.env
+.env.example
+.env.production
+.env.production.example
+
+# Debug scripts
+debug_*.py
+enable_bedrock_access.py
+
+# Shell scripts (not needed in container)
+*.sh
+
+# Migrations (if not needed at runtime)
+migrations/

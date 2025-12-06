@@ -58,7 +58,11 @@ strands-multi-agent-system/
 │   ├── test_invoices_agent.py # Invoices agent tests
 │   ├── test_invoices_agent_batch.py # Batch invoices tests
 │   ├── test_context_manager.py # Context manager tests
-│   ├── test_server.py        # Server tests
+│   ├── test_config_secrets_property.py # Config property tests
+│   ├── test_rls_properties.py # RLS property tests
+│   ├── integration/          # Integration tests (require running server)
+│   │   ├── test_server.py    # Server endpoint tests
+│   │   └── test_e2e.py       # End-to-end tests
 │   ├── verify_*.py           # Verification scripts
 │   ├── run_all_tests.py      # Test runner
 │   ├── docs/                 # Test documentation
@@ -158,43 +162,37 @@ uv run python -m agents.invoices_agent
 
 ## Testing
 
+### Run Unit & Property Tests (No Server Required)
+
+```bash
+# Run all unit and property tests
+uv run pytest tests/ --ignore=tests/integration -v
+
+# Run specific test file
+uv run pytest tests/test_foundation.py -v
+
+# Run with pattern matching
+uv run pytest tests/ --ignore=tests/integration -k "config" -v
+```
+
+### Run Integration Tests (Requires Running Server)
+
+```bash
+# Terminal 1: Start the server
+uv run python -m backend.main
+
+# Terminal 2: Run integration tests
+uv run pytest tests/integration/ -v
+```
+
 ### Run All Tests
 
 ```bash
+# Using pytest (server must be running for integration tests)
+uv run pytest tests/ -v
+
 # Using the convenience script
 ./run_tests.sh
-
-# Or directly
-uv run python tests/run_all_tests.py
-```
-
-### Run Specific Tests
-
-```bash
-# Run foundation tests only
-uv run python tests/run_all_tests.py --test foundation
-
-# Run invoices tests only
-uv run python tests/run_all_tests.py --test invoices
-```
-
-### Verbose Output
-
-```bash
-uv run python tests/run_all_tests.py --verbose
-```
-
-### Run Individual Test Module
-
-```bash
-uv run python tests/test_foundation.py
-uv run python tests/test_invoices_agent.py
-```
-
-### Test Backend Server
-
-```bash
-uv run python tests/test_server.py
 ```
 
 See [tests/README.md](tests/README.md) for detailed testing documentation.

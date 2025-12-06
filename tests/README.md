@@ -1,8 +1,26 @@
 # Tests Directory
 
-This directory contains all test modules for the Canvalo multi-agent system.
+This directory contains all test modules for the Canvalo multi-agent system, organized by test type.
 
-## Test Modules
+## Test Organization
+
+```
+tests/
+├── integration/              # Integration tests (require running server)
+│   ├── test_server.py       # API endpoint tests
+│   └── test_e2e.py          # End-to-end tests
+├── test_foundation.py        # Core functionality tests
+├── test_context_manager.py   # Context management tests
+├── test_invoices_agent.py    # Invoice agent tests
+├── test_invoices_agent_batch.py # Batch invoice tests
+├── test_rls_properties.py    # RLS property tests
+├── test_config_secrets_property.py # Config property tests
+├── test_cleanup.py           # Cleanup utilities
+├── conftest.py               # Pytest fixtures
+└── verify_*.py               # Verification scripts
+```
+
+## Unit & Property Tests (No Server Required)
 
 ### `test_foundation.py`
 Tests the Phase 1 foundation implementation:
@@ -26,18 +44,6 @@ Comprehensive batch integration tests for the Invoices Agent:
 - Natural language query handling
 - Real Supabase integration testing
 
-### `test_e2e.py`
-End-to-end tests for the complete multi-agent chat system:
-- **Server Health**: Health check and root endpoint tests
-- **Basic Chat Flow**: Message sending, streaming responses, message persistence
-- **Agent Routing**: Invoice queries, unimplemented domain handling
-- **Multi-Agent Coordination**: Ambiguous query handling
-- **Voice Mode**: Transcript processing, TTS response handling
-- **Error Scenarios**: Invalid IDs, empty messages, missing fields, non-existent resources
-- **Conversation Management**: CRUD operations for conversations
-
-Requirements covered: 12.1-12.12, 14.1-14.5, 15.1-15.2, 16.1-16.5, 17.1-17.4
-
 ### `test_rls_properties.py`
 Property-based tests for Row Level Security (RLS) policy enforcement:
 - **RLS SELECT Enforcement**: Verifies users can only see their own data
@@ -45,6 +51,14 @@ Property-based tests for Row Level Security (RLS) policy enforcement:
 - **RLS CRUD Completeness**: Validates all CRUD operations have proper RLS policies
 
 Requirements covered: 2.3, 2.4, 9.1, 9.2, 9.4
+
+### `test_config_secrets_property.py`
+Property-based tests for configuration source fallback:
+- **Configuration Source Fallback**: Verifies AWS Secrets Manager vs .env fallback
+- **Configuration Source Indicator**: Validates logging of config source at startup
+- **Error Handling**: Tests Secrets Manager error scenarios
+
+Requirements covered: 9.1, 9.2, 9.3 (AWS Deployment Pipeline spec)
 
 ### `conftest.py`
 Pytest configuration and shared fixtures:
@@ -65,55 +79,69 @@ Test data cleanup utilities:
 
 Requirements covered: 12.5
 
+## Integration Tests (Require Running Server)
+
+Located in `tests/integration/`:
+
+### `integration/test_server.py`
+API endpoint tests:
+- Health check endpoint
+- Root endpoint
+- Chat stream endpoint
+
+### `integration/test_e2e.py`
+End-to-end tests for the complete multi-agent chat system:
+- **Server Health**: Health check and root endpoint tests
+- **Basic Chat Flow**: Message sending, streaming responses, message persistence
+- **Agent Routing**: Invoice queries, unimplemented domain handling
+- **Multi-Agent Coordination**: Ambiguous query handling
+- **Voice Mode**: Transcript processing, TTS response handling
+- **Error Scenarios**: Invalid IDs, empty messages, missing fields, non-existent resources
+- **Conversation Management**: CRUD operations for conversations
+
+Requirements covered: 12.1-12.12, 14.1-14.5, 15.1-15.2, 16.1-16.5, 17.1-17.4
+
 ## Running Tests
 
-### Run All Tests
+### Unit & Property Tests (No Server Required)
 ```bash
-# From project root
-python tests/run_all_tests.py
+# Run all unit and property tests
+uv run pytest tests/ --ignore=tests/integration -v
 
-# Or from tests directory
-python run_all_tests.py
+# Run specific test file
+uv run pytest tests/test_foundation.py -v
+
+# Run property tests only
+uv run pytest tests/test_config_secrets_property.py tests/test_rls_properties.py -v
+
+# Run with pattern matching
+uv run pytest tests/ --ignore=tests/integration -k "config" -v
 ```
 
-### Run Specific Test
-```bash
-# Run foundation tests only
-python tests/run_all_tests.py --test foundation
-
-# Run invoices tests only
-python tests/run_all_tests.py --test invoices
-
-# Run e2e tests (requires server running)
-uv run pytest tests/test_e2e.py -v
-```
-
-### Run E2E Tests
-The e2e tests require the FastAPI server to be running:
+### Integration Tests (Require Running Server)
 ```bash
 # Terminal 1: Start the server
 uv run python -m backend.main
 
-# Terminal 2: Run e2e tests
-uv run pytest tests/test_e2e.py -v --tb=short
+# Terminal 2: Run integration tests
+uv run pytest tests/integration/ -v --tb=short
 ```
 
-The e2e tests authenticate with Supabase using the same test credentials as the frontend (`TEST_USER_EMAIL` and `TEST_USER_PASSWORD` from `.env`).
+The integration tests authenticate with Supabase using the same test credentials as the frontend (`TEST_USER_EMAIL` and `TEST_USER_PASSWORD` from `.env`).
+
+### Run All Tests
+```bash
+# Using pytest (server must be running for integration tests)
+uv run pytest tests/ -v
+
+# Using the convenience script
+python tests/run_all_tests.py
+```
 
 ### Verbose Output
 ```bash
 # Run with detailed output
-python tests/run_all_tests.py --verbose
-
-# Combine with specific test
-python tests/run_all_tests.py -v -t foundation
-```
-
-### Run Individual Test Module
-```bash
-# Run a single test module directly
-python tests/test_foundation.py
-python tests/test_invoices_agent.py
+uv run pytest tests/ --ignore=tests/integration -v --tb=long
 ```
 
 ## Test Structure
@@ -187,6 +215,7 @@ Current test coverage:
 - ✅ Invoices Agent (agent, tools, integration)
 - ✅ End-to-End Tests (chat flow, streaming, routing, errors, conversations)
 - ✅ RLS Property Tests (data isolation, CRUD completeness)
+- ✅ Configuration Property Tests (Secrets Manager fallback, source logging)
 - ✅ Test Infrastructure (fixtures, cleanup, SYSTEM_USER_ID support)
 - 🔄 Additional agents (to be added as implemented)
 - 🔄 Rate Limiting Tests (to be implemented)

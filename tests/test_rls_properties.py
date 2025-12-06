@@ -17,12 +17,21 @@ from hypothesis import given, strategies as st, settings, assume, Phase
 import pytest
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables - prefer .env.development for tests (has service key)
+import pathlib
+env_dev_path = pathlib.Path(__file__).parent.parent / '.env.development'
+if env_dev_path.exists():
+    load_dotenv(env_dev_path, override=True)
+else:
+    load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Log which environment we're using
+logger.info(f"RLS Tests using environment: {os.getenv('ENVIRONMENT', 'unknown')}")
+logger.info(f"Service key available: {bool(os.getenv('SUPABASE_SERVICE_KEY'))}")
 
 # Import Supabase client utilities
 import sys
@@ -47,12 +56,21 @@ RLS_TABLES = [
 
 def get_service_client():
     """Get the service key client that bypasses RLS (for test setup/teardown)."""
+    # Reset the singleton to ensure we get a fresh client with the correct key
+    from utils import supabase_client as sc
+    if sc._supabase_wrapper is not None:
+        # Check if we need to reinitialize (e.g., if env changed)
+        pass
     return get_supabase_client()
 
 
 def create_user_scoped_client(user_jwt: str):
     """Create a user-scoped client that respects RLS policies."""
     return get_supabase_client().create_user_scoped_client(user_jwt)
+
+
+# Schema to use for all queries (api schema has proper RLS policies)
+API_SCHEMA = "api"
 
 
 def get_test_user_jwt(user_id: str) -> Optional[str]:
@@ -74,9 +92,9 @@ def get_test_user_jwt(user_id: str) -> Optional[str]:
 def table_has_user_id_column(table_name: str) -> bool:
     """Check if a table has a user_id column."""
     try:
-        client = get_service_client()
-        # Try to select user_id column - if it doesn't exist, this will fail
-        result = client.table(table_name).select('user_id').limit(1).execute()
+        wrapper = get_service_client()
+        # Use the wrapper's table() method which already uses the api schema
+        result = wrapper.table(table_name).select('user_id').limit(1).execute()
         return True
     except Exception as e:
         logger.warning(f"Table {table_name} may not have user_id column: {e}")
@@ -86,8 +104,9 @@ def table_has_user_id_column(table_name: str) -> bool:
 def get_all_records_for_table(table_name: str) -> List[Dict[str, Any]]:
     """Get all records from a table using service key (bypasses RLS)."""
     try:
-        client = get_service_client()
-        result = client.table(table_name).select('*').execute()
+        wrapper = get_service_client()
+        # Use the wrapper's table() method which already uses the api schema
+        result = wrapper.table(table_name).select('*').execute()
         records = result.data or []
         logger.info(f"[{table_name}] Retrieved {len(records)} total records (service key)")
         for record in records:
@@ -101,8 +120,9 @@ def get_all_records_for_table(table_name: str) -> List[Dict[str, Any]]:
 def get_records_for_user(table_name: str, user_id: str) -> List[Dict[str, Any]]:
     """Get records from a table filtered by user_id using service key."""
     try:
-        client = get_service_client()
-        result = client.table(table_name).select('*').eq('user_id', user_id).execute()
+        wrapper = get_service_client()
+        # Use the wrapper's table() method which already uses the api schema
+        result = wrapper.table(table_name).select('*').eq('user_id', user_id).execute()
         records = result.data or []
         logger.info(f"[{table_name}] Retrieved {len(records)} records for user_id={user_id}")
         for record in records:
@@ -116,8 +136,9 @@ def get_records_for_user(table_name: str, user_id: str) -> List[Dict[str, Any]]:
 def get_distinct_user_ids(table_name: str) -> List[str]:
     """Get distinct user_ids from a table."""
     try:
-        client = get_service_client()
-        result = client.table(table_name).select('user_id').execute()
+        wrapper = get_service_client()
+        # Use the wrapper's table() method which already uses the api schema
+        result = wrapper.table(table_name).select('user_id').execute()
         user_ids = set()
         for record in result.data or []:
             if record.get('user_id'):
