@@ -119,6 +119,26 @@ def _get_config_value(key: str, default: str = "") -> str:
     return os.getenv(key, default)
 
 
+def _parse_cors_origins() -> list[str]:
+    """
+    Parse CORS_ORIGINS from configuration (comma-separated list).
+
+    Returns a list of origins. If the environment variable is not set,
+    returns the sensible localhost defaults.
+    """
+    raw = _get_config_value("CORS_ORIGINS", "").strip()
+    if not raw:
+        logger.info("CORS_ORIGINS not set, using default localhost origins")
+        return [
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:5173",
+        ]
+    # Split on comma and trim whitespace, ignore empty entries
+    return [o.strip() for o in raw.split(",") if o.strip()]
+
+
 class Settings(BaseSettings):
     """Application settings loaded from environment variables or Secrets Manager."""
     
@@ -133,7 +153,7 @@ class Settings(BaseSettings):
     aws_secrets_name: Optional[str] = os.getenv("AWS_SECRETS_NAME")
     
     # Bedrock Configuration
-    bedrock_model_id: str = _get_config_value("BEDROCK_MODEL_ID", "amazon.nova-lite-v1:0")
+    bedrock_model_id: str = _get_config_value("BEDROCK_MODEL_ID", "global.amazon.nova-2-lite-v1:0")
     
     # API Configuration
     api_host: str = _get_config_value("API_HOST", "0.0.0.0")
@@ -146,12 +166,16 @@ class Settings(BaseSettings):
     system_user_id: str = _get_config_value("SYSTEM_USER_ID", "00000000-0000-0000-0000-000000000000")
     
     # CORS Configuration
-    cors_origins: list[str] = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-    ]
+    # Store raw value as string so pydantic's env parsing won't try to decode
+    cors_origins_raw: str = _get_config_value("CORS_ORIGINS", "")
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """Parsed CORS origins list (comma-separated in env or defaults)."""
+        raw = self.cors_origins_raw.strip() if isinstance(self.cors_origins_raw, str) else ""
+        if not raw:
+            return _parse_cors_origins()
+        return [o.strip() for o in raw.split(",") if o.strip()]
     
     # Retry Configuration
     max_retry_attempts: int = 3

@@ -42,6 +42,7 @@ async def lifespan(app: FastAPI):
     logger.info(f"Environment: {settings.environment}")
     logger.info(f"Supabase URL: {settings.supabase_url}")
     logger.info(f"Bedrock Model: {settings.bedrock_model_id}")
+    logger.info(f"CORS origins: {settings.cors_origins}")
     
     # Validate configuration for the current environment
     # This will raise ConfigurationError in production if config is invalid

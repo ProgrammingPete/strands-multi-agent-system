@@ -47,7 +47,7 @@
 - [x] 4. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Create Backend Stack
+- [x] 5. Create Backend Stack
   - [x] 5.1 Create VPC construct with multi-AZ subnets
     - Create VPC with public and private subnets
     - Configure at least 2 availability zones
@@ -65,26 +65,35 @@
   - [x] 5.4 Write property test for Secrets Manager integration
     - **Property 3: Secrets Manager integration**
     - **Validates: Requirements 2.4, 5.2**
-  - [x] 5.5 Create Application Load Balancer
+  - [x] 5.5 Create ACM certificate for Prod with automated DNS validation
+    - Create ACM certificate construct for api.canvalo.com domain
+    - Configure DNS validation using Route53 hosted zone lookup (fully automated)
+    - Export certificate ARN for ALB configuration
+    - **Note:** Requires Route53 hosted zone for canvalo.com domain
+    - **Note:** Certificate must be in us-east-1 region for ALB usage
+    - **Alternative:** If not using Route53, manual DNS validation CNAME required
+    - _Requirements: 8.5_
+  - [x] 5.6 Create Application Load Balancer
     - Configure ALB with HTTP listener for Beta/Gamma (auto-generated DNS)
     - Configure ALB with HTTPS listener and ACM certificate for Prod only
     - Configure target group with health checks
+    - Add HTTP to HTTPS redirect for Prod
     - _Requirements: 2.2, 8.4, 8.5_
-  - [ ]* 5.6 Write property test for ALB TLS termination (Prod only)
+  - [ ]* 5.7 Write property test for ALB TLS termination (Prod only)
     - **Property 9: ALB TLS termination for Prod, HTTP for Beta/Gamma**
     - **Validates: Requirements 8.4, 8.5**
-  - [x] 5.7 Configure auto-scaling for production
+  - [x] 5.8 Configure auto-scaling for production
     - Add auto-scaling policy based on CPU utilization
     - Set min/max task counts from environment config
     - _Requirements: 2.6_
-  - [x] 5.8 Write property test for auto-scaling configuration
+  - [x] 5.9 Write property test for auto-scaling configuration
     - **Property 12: Auto-scaling configuration**
     - **Validates: Requirements 2.6**
-  - [x] 5.9 Configure IAM roles with least-privilege
+  - [x] 5.10 Configure IAM roles with least-privilege
     - Create task execution role with Secrets Manager access
     - Restrict permissions to specific secret ARN
     - _Requirements: 5.3_
-  - [x] 5.10 Write property test for IAM least-privilege
+  - [x] 5.11 Write property test for IAM least-privilege
     - **Property 4: IAM least-privilege for secrets**
     - **Validates: Requirements 5.3**
 
@@ -94,13 +103,13 @@
 - [ ] 7. Create Frontend Stack
   - [ ] 7.1 Create S3 bucket for static hosting
     - Configure bucket with public access blocked
-    - Set up bucket policy for CloudFront OAI access
+    - Set up bucket policy for CloudFront OAC access
     - _Requirements: 3.1_
   - [ ]* 7.2 Write property test for S3 bucket security
     - **Property 7: S3 bucket security**
     - **Validates: Requirements 3.1**
   - [ ] 7.3 Create CloudFront distribution
-    - Configure S3 origin with OAI
+    - Configure S3 origin with OAC
     - Set default cache behavior with 24-hour TTL
     - Configure CORS headers for API requests
     - _Requirements: 3.2, 3.3, 8.4_
@@ -217,11 +226,19 @@
     - Document deployment commands
     - Document branch configuration
     - Document CodeStar Connection setup (manual OAuth step)
+    - Document ACM certificate DNS validation (manual step for Prod)
+    - Document Route53 setup for custom domain (if using Route53)
     - _Requirements: 6.3_
   - [ ] 15.2 Create bootstrap script for AWS accounts
     - Document CDK bootstrap commands for each account
     - Include cross-account trust configuration
     - _Requirements: 4.6_
+  - [ ] 15.3 Document ACM certificate setup for Prod
+    - Document Route53 hosted zone requirement for automated validation
+    - Document how CDK automatically creates and validates certificate via Route53
+    - Document alternative manual DNS validation if not using Route53
+    - Document how to migrate domain to Route53 or delegate DNS
+    - _Requirements: 8.5_
 
 - [ ] 16. Final Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
@@ -230,17 +247,30 @@
 
 ## Future Enhancements
 
-- [ ] 17. Add custom domains for Beta and Gamma environments
-  - [ ] 17.1 Create ACM certificates for Beta and Gamma
+- [ ] 17. Complete Route53 DNS setup for Prod custom domain
+  - [ ] 17.1 Create or import Route53 hosted zone for canvalo.com
+    - Create hosted zone in Prod account (if not exists)
+    - Update domain registrar nameservers to point to Route53 (one-time manual step)
+    - Verify DNS delegation is working
+    - **Note:** This must be done BEFORE task 5.5 (ACM certificate) for automated validation
+  - [ ] 17.2 Create Route53 A/AAAA alias records for Prod
+    - Create alias record for api.canvalo.com pointing to ALB
+    - Create alias record for canvalo.com pointing to CloudFront
+  - [ ] 17.3 Update frontend build configuration for Prod
+    - Update VITE_API_URL to use https://api.canvalo.com
+    - Update environment configuration module
+
+- [ ] 18. Add custom domains for Beta and Gamma environments
+  - [ ] 18.1 Create ACM certificates for Beta and Gamma
     - Request certificates for api.beta.canvalo.com, beta.canvalo.com
     - Request certificates for api.gamma.canvalo.com, gamma.canvalo.com
     - Configure DNS validation via Route53
-  - [ ] 17.2 Update ALB configuration for Beta/Gamma
+  - [ ] 18.2 Update ALB configuration for Beta/Gamma
     - Add HTTPS listeners with ACM certificates
     - Redirect HTTP to HTTPS
-  - [ ] 17.3 Create Route53 records for Beta/Gamma
+  - [ ] 18.3 Create Route53 records for Beta/Gamma
     - Create A/AAAA alias records pointing to ALB
     - Create A/AAAA alias records pointing to CloudFront
-  - [ ] 17.4 Update frontend build configuration
+  - [ ] 18.4 Update frontend build configuration
     - Update VITE_API_URL to use custom domain URLs
     - Update environment configuration module
