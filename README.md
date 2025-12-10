@@ -10,8 +10,8 @@ This system integrates specialized AI agents into Canvalo's business management 
 
 The system uses an "Agents as Tools" pattern with:
 - **Supervisor Agent**: Routes user queries to appropriate specialized agents
-- **Specialized Agents**: Domain experts for different business functions
-  - Invoices Agent ✅
+- **Specialized Agents**: Domain experts with Supabase CRUD tools
+  - Invoices ✅
   - Appointments Agent (planned)
   - Projects Agent (planned)
   - Proposals Agent (planned)
@@ -238,53 +238,45 @@ def example_agent_tool(query: str) -> str:
 
 ### Implemented ✅
 
-- **Phase 1 Foundation**
-  - Supervisor agent with routing logic
-  - Supabase client wrapper with retry logic
-  - Generic CRUD tool generators
-  - Comprehensive test suite
+- **All Domain Agents**
+  - Invoices: Create, read, update, delete, payment tracking
+  - Appointments: Scheduling and calendar management
+  - Projects: Project tracking and management
+  - Proposals: Estimates and proposals
+  - Contacts: Client/supplier CRM
+  - Reviews: Customer review management
+  - Campaigns: Marketing campaigns
+  - Tasks: Task tracking
+  - Goals: Business goal tracking
 
-- **Invoices Agent**
-  - Create, read, update, delete invoices
-  - Payment tracking
-  - Status management
-  - Professional formatting
+- **FastAPI Backend Service**
+  - REST API with streaming chat and conversation management
+  - Server-Sent Events (SSE) for real-time responses
+  - JWT authentication (required in production)
+  - CORS support for frontend integration
 
-- **FastAPI Backend Service** (Task 15)
-  - REST API with 11 endpoints
-  - Server-Sent Events (SSE) streaming
-  - Conversation management (CRUD)
-  - Error handling with retry logic
-  - CORS support for frontend
-  - Comprehensive documentation
+- **Security**
+  - JWT token validation via Supabase
+  - Row-Level Security (RLS) enforcement
+  - User-scoped database operations
+  - Admin authentication for service operations
+
+- **AWS Deployment Ready**
+  - Dockerfile with health checks
+  - Secrets Manager integration with .env fallback
+  - CDK infrastructure in separate repo (canvalo-infrastructure)
 
 ### In Progress 🔄
 
-- **Production Security** - Row Level Security and JWT authentication
-  - Database schema with user_id columns ✅
-  - RLS policies for all tables ✅
-  - Backend JWT validation middleware ✅
-  - User-scoped database clients ✅
-  - Configuration settings (anon key, environment) ✅
-  - Backend API JWT integration ✅
-  - Agent tools refactoring ✅
-  - Frontend JWT integration ✅
-  - Production environment configuration ✅
-  - Admin operation authentication ✅
-  - Rate limiting (in progress)
-  - Audit logging (in progress)
-- Additional specialized agents (appointments, projects, etc.)
-- Frontend integration
-- Streaming responses
+- Rate limiting
+- Audit logging
 - Voice mode support
 
 ### Planned 📋
 
 - Analytics integration
-- Multi-agent coordination
-- Context management
-- Error recovery
-- Performance optimization
+- CloudWatch alarms and dashboards
+- CI/CD pipeline via CDK Pipelines
 
 ## Documentation
 

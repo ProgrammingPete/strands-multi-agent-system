@@ -4,6 +4,22 @@
 
 This document specifies the requirements for deploying the Canvalo application (FastAPI backend and React frontend) to AWS using a multi-account staged pipeline. The deployment infrastructure uses AWS CDK with CDK Pipelines to enable automated deployments across Beta, Gamma, and Production environments hosted in separate AWS accounts. The backend runs on ECS Fargate, and the frontend is served via S3 and CloudFront.
 
+## Implementation Status Summary
+
+| Requirement | Status | Notes |
+|-------------|--------|-------|
+| 1. Backend Containerization | ✅ Complete | Dockerfile with health check, graceful shutdown |
+| 2. Backend Infrastructure | ✅ Complete | VPC, ECS Fargate, ALB with HTTPS, auto-scaling |
+| 3. Frontend Infrastructure | ✅ Complete | S3, CloudFront with OAC, bucket deployment |
+| 4. Multi-Account Pipeline | ⏳ Stub Only | PipelineStack exists but not implemented |
+| 5. Secrets Management | ✅ Complete | Secrets Manager with ECS integration |
+| 6. CDK Project Structure | ✅ Complete | Separate repo, TypeScript, organized stacks |
+| 7. Environment Configuration | ✅ Complete | Beta/Gamma/Prod configs in environments.ts |
+| 8. Frontend-Backend Connectivity | ✅ Partial | HTTPS works, custom domains per env, CORS TBD |
+| 9. Configuration Migration | ✅ Complete | Secrets Manager with .env fallback |
+| 10. Automated Testing | ❌ Not Started | Pipeline not implemented |
+| 11. Monitoring & Observability | ⏳ Partial | CloudWatch Logs done, alarms/dashboard TBD |
+
 ## Glossary
 
 - **CDK**: AWS Cloud Development Kit - an infrastructure-as-code framework

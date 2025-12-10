@@ -1,276 +1,129 @@
 # Implementation Plan
 
-**Note:** The CDK infrastructure will be in a separate repository (`canvalo-infrastructure`). The pipeline will reference three repositories: infrastructure, backend (strands-multi-agent-system), and frontend (CanvaloFrontend).
+**Note:** The CDK infrastructure is in a separate repository (`canvalo-infrastructure`). The pipeline will reference three repositories: infrastructure, backend (strands-multi-agent-system), and frontend (CanvaloFrontend).
+
+## Completed Tasks
 
 - [x] 1. Set up CDK project structure
-  - [x] 1.1 Create new `canvalo-infrastructure` repository and initialize CDK TypeScript project
-    - Create package.json with CDK dependencies
-    - Configure tsconfig.json with strict mode
-    - Create cdk.json with context configuration (including repo references)
-    - _Requirements: 6.1, 6.3, 6.4_
-  - [x] 1.2 Create environment configuration module
-    - Define EnvironmentConfig interface
-    - Create beta, gamma, prod configurations with resource sizing
-    - _Requirements: 7.1, 7.2, 7.3_
-  - [x] 1.3 Write property test for environment configuration
-    - **Property 1: Environment-specific resource sizing**
-    - **Validates: Requirements 7.1, 7.2, 7.3**
+  - [x] 1.1 Create `canvalo-infrastructure` repository with CDK TypeScript project
+  - [x] 1.2 Create environment configuration module (`lib/config/environments.ts`)
+    - EnvironmentConfig interface with CPU, memory, task counts, VPC CIDR
+    - Beta: 0.25 vCPU, 512MB, 1-2 tasks
+    - Gamma: 0.5 vCPU, 1GB, 2-4 tasks  
+    - Prod: 1 vCPU, 2GB, 2-10 tasks, auto-scaling, deletion protection
+  - [ ]* 1.3 Write property test for environment configuration
 
 - [x] 2. Create Dockerfile for backend
-  - [x] 2.1 Create Dockerfile in `strands-multi-agent-system/` repository root
-    - Use Python 3.11+ base image
-    - Install uv package manager
-    - Copy and install dependencies from pyproject.toml
-    - Configure health check endpoint
-    - Set up graceful shutdown handling
-    - _Requirements: 1.1, 1.2, 1.4, 1.5_
-  - [x] 2.2 Create .dockerignore file in `strands-multi-agent-system/`
-    - Exclude .venv, __pycache__, .git, tests
-    - _Requirements: 1.1_
+  - [x] 2.1 Dockerfile in `strands-multi-agent-system/` with Python 3.11+, uv, health check
+  - [x] 2.2 .dockerignore file
 
 - [x] 3. Implement backend configuration migration
-  - [x] 3.1 Update backend config.py to support Secrets Manager
-    - Add AWS_SECRETS_NAME environment variable check
-    - Implement Secrets Manager client with boto3
-    - Add fallback to .env files when AWS_SECRETS_NAME not set
-    - Log configuration source at startup
-    - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
-  - [x] 3.2 Write property test for configuration source fallback
-    - **Property 14: Configuration source fallback**
-    - **Validates: Requirements 9.1, 9.2, 9.3**
-  - [ ]* 3.3 Write unit tests for Secrets Manager integration
-    - Test successful secret retrieval
-    - Test fallback when AWS_SECRETS_NAME not set
-    - Test error handling when secret not found
-    - _Requirements: 9.1, 9.2, 9.3_
+  - [x] 3.1 Backend config.py supports Secrets Manager with .env fallback
+  - [x] 3.2 Property test for configuration source fallback
+  - [ ]* 3.3 Unit tests for Secrets Manager integration
 
-- [x] 4. Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
+- [x] 4. Create DNS Stack (`lib/stacks/dns-stack.ts`)
+  - [x] Route53 hosted zone per environment subdomain
+  - [x] Exports hostedZoneId for other stacks
 
-- [x] 5. Create Backend Stack
-  - [x] 5.1 Create VPC construct with multi-AZ subnets
-    - Create VPC with public and private subnets
-    - Configure at least 2 availability zones
-    - Set up NAT gateways for private subnet internet access
-    - _Requirements: 2.5_
-  - [x] 5.2 Write property test for VPC multi-AZ configuration
-    - **Property 2: VPC multi-AZ configuration**
-    - **Validates: Requirements 2.5**
-  - [x] 5.3 Create ECS Fargate service construct
-    - Create ECS cluster
-    - Define task definition with environment-specific CPU/memory
-    - Configure container with Secrets Manager references
-    - Set up health check configuration
-    - _Requirements: 2.1, 2.4, 1.3, 1.4_
-  - [x] 5.4 Write property test for Secrets Manager integration
-    - **Property 3: Secrets Manager integration**
-    - **Validates: Requirements 2.4, 5.2**
-  - [x] 5.5 Create ACM certificate for Prod with automated DNS validation
-    - Create ACM certificate construct for api.canvalo.com domain
-    - Configure DNS validation using Route53 hosted zone lookup (fully automated)
-    - Export certificate ARN for ALB configuration
-    - **Note:** Requires Route53 hosted zone for canvalo.com domain
-    - **Note:** Certificate must be in us-east-1 region for ALB usage
-    - **Alternative:** If not using Route53, manual DNS validation CNAME required
-    - _Requirements: 8.5_
-  - [x] 5.6 Create Application Load Balancer
-    - Configure ALB with HTTP listener for Beta/Gamma (auto-generated DNS)
-    - Configure ALB with HTTPS listener and ACM certificate for Prod only
-    - Configure target group with health checks
-    - Add HTTP to HTTPS redirect for Prod
-    - _Requirements: 2.2, 8.4, 8.5_
-  - [ ]* 5.7 Write property test for ALB TLS termination (Prod only)
-    - **Property 9: ALB TLS termination for Prod, HTTP for Beta/Gamma**
-    - **Validates: Requirements 8.4, 8.5**
-  - [x] 5.8 Configure auto-scaling for production
-    - Add auto-scaling policy based on CPU utilization
-    - Set min/max task counts from environment config
-    - _Requirements: 2.6_
-  - [x] 5.9 Write property test for auto-scaling configuration
-    - **Property 12: Auto-scaling configuration**
-    - **Validates: Requirements 2.6**
-  - [x] 5.10 Configure IAM roles with least-privilege
-    - Create task execution role with Secrets Manager access
-    - Restrict permissions to specific secret ARN
-    - _Requirements: 5.3_
-  - [x] 5.11 Write property test for IAM least-privilege
-    - **Property 4: IAM least-privilege for secrets**
-    - **Validates: Requirements 5.3**
+- [x] 5. Create Certificate Stack (`lib/stacks/certificate-stack.ts`)
+  - [x] ACM certificate in us-east-1 for CloudFront
+  - [x] DNS validation via Route53 hosted zone
 
-- [x] 6. Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
+- [x] 6. Create Backend Stack (`lib/stacks/backend-stack.ts`)
+  - [x] 6.1 VPC with multi-AZ subnets (public/private), NAT gateway
+  - [x] 6.2 ECS Cluster with Container Insights
+  - [x] 6.3 Secrets Manager secret (Supabase, Bedrock, CORS config)
+  - [x] 6.4 CloudWatch Log Group (30-day retention)
+  - [x] 6.5 IAM roles (task execution + task role with Bedrock access)
+  - [x] 6.6 Docker image via DockerImageAsset
+  - [x] 6.7 ECS Fargate service with ALB (HTTPS, health checks)
+  - [x] 6.8 ACM certificate for backend domain with DNS validation
+  - [x] 6.9 Auto-scaling for production (CPU-based, 70% target)
+  - [x] 6.10 Route53 A record pointing to ALB
+  - [x] 6.11 HTTP to HTTPS redirect
+  - [ ]* 6.12 Property tests for backend stack
 
-- [ ] 7. Create Frontend Stack
-  - [ ] 7.1 Create S3 bucket for static hosting
-    - Configure bucket with public access blocked
-    - Set up bucket policy for CloudFront OAC access
-    - _Requirements: 3.1_
-  - [ ]* 7.2 Write property test for S3 bucket security
-    - **Property 7: S3 bucket security**
-    - **Validates: Requirements 3.1**
-  - [ ] 7.3 Create CloudFront distribution
-    - Configure S3 origin with OAC
-    - Set default cache behavior with 24-hour TTL
-    - Configure CORS headers for API requests
-    - _Requirements: 3.2, 3.3, 8.4_
-  - [ ]* 7.4 Write property test for CloudFront cache configuration
-    - **Property 8: CloudFront cache configuration**
-    - **Validates: Requirements 3.3**
-  - [ ] 7.5 Configure deletion protection for production
-    - Enable retain policy on S3 bucket for prod
-    - Enable retain policy on CloudWatch log groups for prod
-    - _Requirements: 7.6_
-  - [ ]* 7.6 Write property test for deletion protection
-    - **Property 11: Deletion protection for production**
-    - **Validates: Requirements 7.6**
+- [x] 7. Create Frontend Stack (`lib/stacks/frontend-stack.ts`)
+  - [x] 7.1 S3 bucket with public access blocked, versioning for prod
+  - [x] 7.2 CloudFront distribution with S3 OAC origin
+  - [x] 7.3 Geo-restriction (US only)
+  - [x] 7.4 Route53 A record pointing to CloudFront
+  - [x] 7.5 S3 bucket deployment from local build
+  - [x] 7.6 Deletion protection for production (RETAIN policy)
+  - [ ]* 7.7 Property tests for frontend stack
 
-- [ ] 8. Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
+- [x] 8. Create CDK App entry point (`bin/app.ts`)
+  - [x] Loops through all environments (beta, gamma, prod)
+  - [x] Creates stack dependency chain: DNS → Certificate → Backend → Frontend
+  - [x] Domain structure: `canvalofrontend.{env}.{domain}`, `api.{env}.{domain}`
+
+## Remaining Tasks
 
 - [ ] 9. Create Monitoring Stack
-  - [ ] 9.1 Configure CloudWatch log groups
-    - Create log group for ECS container logs
-    - Set 30-day retention period
-    - _Requirements: 11.1_
-  - [ ]* 9.2 Write property test for CloudWatch log retention
-    - **Property 10: CloudWatch log retention**
-    - **Validates: Requirements 11.1**
-  - [ ] 9.3 Create CloudWatch alarms
-    - Create alarm for unhealthy task count
-    - Create alarm for ALB 5xx error rate
-    - Configure SNS actions for alarms
-    - _Requirements: 11.3, 11.4_
-  - [ ]* 9.4 Write property test for CloudWatch alarms
-    - **Property 13: CloudWatch alarms**
-    - **Validates: Requirements 11.3, 11.4**
-  - [ ] 9.5 Configure ALB access logging
-    - Create S3 bucket for ALB logs
-    - Enable access logging on ALB
-    - _Requirements: 11.2_
-  - [ ] 9.6 Create CloudWatch dashboard for production
-    - Add widgets for request count, latency, error rates, task health
-    - _Requirements: 11.5_
+  - [x] 9.1 CloudWatch log groups (implemented in BackendStack)
+    - Log group `/ecs/canvalo-{env}` with 30-day retention
+  - [ ] 9.2 Create CloudWatch alarms
+    - Alarm for unhealthy task count
+    - Alarm for ALB 5xx error rate
+    - SNS notifications
+  - [ ] 9.3 Configure ALB access logging
+    - S3 bucket for ALB logs
+  - [ ] 9.4 Create CloudWatch dashboard for production
 
-- [ ] 10. Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
+- [ ] 10. Implement Pipeline Stack (`lib/stacks/pipeline-stack.ts`)
+  - [x] 10.1 Stub exists with PipelineStackProps interface
+  - [ ] 10.2 Set up CodeStar Connection for GitHub
+  - [ ] 10.3 Create CDK Pipeline with self-mutation
+  - [ ] 10.4 Add pre-deployment test steps (pytest, npm test, jest)
+  - [ ] 10.5 Configure Beta stage deployment
+  - [ ] 10.6 Configure Gamma stage with cross-account deployment
+  - [ ] 10.7 Configure Prod stage with manual approval
+  - [ ] 10.8 Configure SNS notifications for failures
 
-- [ ] 11. Set up CodeStar Connection for GitHub
-  - [ ] 11.1 Create CodeStar Connection construct in CDK
-    - Create CfnConnection resource for GitHub provider
-    - Export connection ARN as stack output
-    - **Note:** CDK creates the connection in PENDING status
-    - _Requirements: 4.1, 4.4_
-  - [ ] 11.2 Complete manual OAuth authorization (one-time setup)
-    - Navigate to AWS Console → Developer Tools → Connections
-    - Find the pending connection and click "Update pending connection"
-    - Complete GitHub OAuth flow to authorize AWS access
-    - Verify connection status changes to AVAILABLE
-    - **Note:** This manual step is required only once per connection
-    - _Requirements: 4.1_
+- [ ] 11. Property Tests
+  - [ ]* 11.1 Environment configuration property test
+  - [ ]* 11.2 VPC multi-AZ property test
+  - [ ]* 11.3 Secrets Manager integration property test
+  - [ ]* 11.4 IAM least-privilege property test
+  - [ ]* 11.5 S3 bucket security property test
+  - [ ]* 11.6 CloudFront cache configuration property test
+  - [ ]* 11.7 ALB TLS termination property test
+  - [ ]* 11.8 Auto-scaling configuration property test
+  - [ ]* 11.9 Deletion protection property test
+  - [ ]* 11.10 Pipeline stage ordering property test
 
-- [ ] 12. Create Pipeline Stack
-  - [ ] 12.1 Create SNS topic for pipeline notifications
-    - Create topic with configured email subscriptions
-    - Add subscriptions for peter.parianos@yahoo.com and peter.parianos@canvalo.com
-    - _Requirements: 4.5_
-  - [ ] 12.2 Create CDK Pipeline with GitHub source
-    - Configure GitHub connection using CodeStar Connection ARN from task 11
-    - Configure source branch (default: main)
-    - Enable self-mutation
-    - _Requirements: 4.1, 4.4, 4.9, 4.10_
-  - [ ] 12.3 Add pre-deployment test steps
-    - Add backend unit tests (pytest)
-    - Add frontend tests (npm test)
-    - Add CDK tests (jest)
-    - _Requirements: 10.1, 10.2, 10.3, 10.4_
-  - [ ] 12.4 Configure Beta stage
-    - Deploy backend and frontend stacks to Beta account
-    - Add post-deployment integration tests
-    - _Requirements: 4.2, 4.7, 4.8, 10.5_
-  - [ ]* 12.5 Write property test for pipeline stage ordering
-    - **Property 5: Pipeline stage ordering**
-    - **Validates: Requirements 4.2, 4.3**
-  - [ ] 12.6 Configure Gamma stage with cross-account deployment
-    - Deploy to Gamma account with cross-account IAM roles
-    - Add post-deployment smoke tests
-    - _Requirements: 4.2, 4.6, 10.6_
-  - [ ]* 12.7 Write property test for cross-account deployment
-    - **Property 6: Cross-account deployment configuration**
-    - **Validates: Requirements 4.6, 4.8**
-  - [ ] 12.8 Configure Prod stage with manual approval
-    - Add manual approval step before Prod deployment
-    - Deploy to Prod account with cross-account IAM roles
-    - Add post-deployment smoke tests
-    - _Requirements: 4.2, 4.3, 4.6, 10.7_
-  - [ ] 12.9 Configure pipeline failure notifications
-    - Add notification rule for pipeline failures
-    - Add notification rule for manual approval needed
-    - _Requirements: 4.5, 10.8_
+- [ ] 12. Documentation
+  - [ ] 12.1 Create README for infrastructure project
+  - [ ] 12.2 Document CDK bootstrap commands
+  - [ ] 12.3 Document CodeStar Connection setup
+  - [ ] 12.4 Document Route53/ACM setup
 
-- [ ] 13. Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
+---
 
-- [ ] 14. Create CDK App entry point
-  - [ ] 14.1 Create bin/app.ts
-    - Instantiate CDK app
-    - Create pipeline stack with configuration from context
-    - _Requirements: 6.2_
-  - [ ] 14.2 Add stack outputs for API and frontend URLs
-    - Export ALB DNS name as API URL
-    - Export CloudFront distribution URL as frontend URL
-    - _Requirements: 8.5_
+## Known Issues / TODOs in Code
 
-- [ ] 15. Documentation and deployment preparation
-  - [ ] 15.1 Create README for infrastructure project
-    - Document prerequisites (AWS accounts, CDK bootstrap)
-    - Document deployment commands
-    - Document branch configuration
-    - Document CodeStar Connection setup (manual OAuth step)
-    - Document ACM certificate DNS validation (manual step for Prod)
-    - Document Route53 setup for custom domain (if using Route53)
-    - _Requirements: 6.3_
-  - [ ] 15.2 Create bootstrap script for AWS accounts
-    - Document CDK bootstrap commands for each account
-    - Include cross-account trust configuration
-    - _Requirements: 4.6_
-  - [ ] 15.3 Document ACM certificate setup for Prod
-    - Document Route53 hosted zone requirement for automated validation
-    - Document how CDK automatically creates and validates certificate via Route53
-    - Document alternative manual DNS validation if not using Route53
-    - Document how to migrate domain to Route53 or delegate DNS
-    - _Requirements: 8.5_
+1. **Hardcoded paths in stacks:**
+   - `BackendStack`: Docker image path hardcoded to `/Users/user/git_projects/amazon_bedrock/strands-multi-agent-system`
+   - `FrontendStack`: Build path hardcoded to `/Users/user/git_projects/canvalo/CanvaloFrontend/build`
+   - These need to be parameterized for pipeline deployment
 
-- [ ] 16. Final Checkpoint - Ensure all tests pass
-  - Ensure all tests pass, ask the user if questions arise.
+2. **Account IDs:**
+   - Beta account hardcoded: `910345601959`
+   - Gamma/Prod accounts read from env vars (empty string fallback)
+
+3. **Pipeline Stack:** Stub only, not implemented
+
+4. **CloudFront TTL:** Using default, not explicitly set to 24 hours
+
+5. **CORS headers:** Not explicitly configured on CloudFront
 
 ---
 
 ## Future Enhancements
 
-- [ ] 17. Complete Route53 DNS setup for Prod custom domain
-  - [ ] 17.1 Create or import Route53 hosted zone for canvalo.com
-    - Create hosted zone in Prod account (if not exists)
-    - Update domain registrar nameservers to point to Route53 (one-time manual step)
-    - Verify DNS delegation is working
-    - **Note:** This must be done BEFORE task 5.5 (ACM certificate) for automated validation
-  - [ ] 17.2 Create Route53 A/AAAA alias records for Prod
-    - Create alias record for api.canvalo.com pointing to ALB
-    - Create alias record for canvalo.com pointing to CloudFront
-  - [ ] 17.3 Update frontend build configuration for Prod
-    - Update VITE_API_URL to use https://api.canvalo.com
-    - Update environment configuration module
-
-- [ ] 18. Add custom domains for Beta and Gamma environments
-  - [ ] 18.1 Create ACM certificates for Beta and Gamma
-    - Request certificates for api.beta.canvalo.com, beta.canvalo.com
-    - Request certificates for api.gamma.canvalo.com, gamma.canvalo.com
-    - Configure DNS validation via Route53
-  - [ ] 18.2 Update ALB configuration for Beta/Gamma
-    - Add HTTPS listeners with ACM certificates
-    - Redirect HTTP to HTTPS
-  - [ ] 18.3 Create Route53 records for Beta/Gamma
-    - Create A/AAAA alias records pointing to ALB
-    - Create A/AAAA alias records pointing to CloudFront
-  - [ ] 18.4 Update frontend build configuration
-    - Update VITE_API_URL to use custom domain URLs
-    - Update environment configuration module
+- [ ] 13. Multi-account pipeline with cross-account IAM roles
+- [ ] 14. Custom domains for all environments
+- [ ] 15. CloudWatch dashboard for production
+- [ ] 16. ALB access logging
+- [ ] 17. WAF integration for CloudFront/ALB

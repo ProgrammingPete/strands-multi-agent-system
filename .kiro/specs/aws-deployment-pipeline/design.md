@@ -457,6 +457,101 @@ Each account stores secrets with the following structure:
 }
 ```
 
+### CORS Configuration
+
+CORS headers are configured to allow the frontend to communicate with the backend API securely.
+
+**Design Decision:** CORS is handled at the backend application level (FastAPI) rather than CloudFront, as the backend needs fine-grained control over allowed origins, methods, and headers.
+
+**Backend CORS Configuration:**
+
+The backend reads allowed origins from Secrets Manager and configures FastAPI CORS middleware:
+
+```python
+# In backend/main.py
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[settings.cors_allowed_origin],  # From Secrets Manager
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+**Secrets Manager CORS Entry:**
+
+```json
+{
+  "CORS_ALLOWED_ORIGIN": "https://canvalofrontend.{env}.{domain}"
+}
+```
+
+| Environment | CORS_ALLOWED_ORIGIN |
+|-------------|---------------------|
+| Beta | `https://canvalofrontend.beta.canvalo.com` |
+| Gamma | `https://canvalofrontend.gamma.canvalo.com` |
+| Prod | `https://canvalofrontend.prod.canvalo.com` |
+
+**Validates: Requirements 8.6**
+
+## Design Decisions
+
+This section documents key architectural decisions and their rationales.
+
+### Decision 1: HTTPS for All Environments
+
+**Context:** Requirements 8.2 and 8.4 originally specified HTTP with auto-generated ALB DNS names for Beta and Gamma environments.
+
+**Decision:** Use HTTPS with custom domains for all environments (Beta, Gamma, Prod).
+
+**Rationale:**
+- Consistent security posture across all environments
+- Simplifies frontend configuration (no HTTP/HTTPS switching)
+- ACM certificates are free, so no additional cost
+- Custom domains provide better developer experience and easier debugging
+- Avoids mixed-content issues during development
+
+**Trade-offs:**
+- Requires Route53 hosted zone setup for each environment
+- Slightly more complex initial setup
+
+### Decision 2: CORS at Application Level
+
+**Context:** Requirement 8.6 specifies CORS headers should be configured.
+
+**Decision:** Handle CORS at the FastAPI backend level rather than CloudFront.
+
+**Rationale:**
+- Backend has fine-grained control over allowed origins, methods, and headers
+- Easier to update CORS configuration via Secrets Manager without redeployment
+- Follows the principle of handling security at the application layer
+- CloudFront CORS configuration is more limited and harder to debug
+
+### Decision 3: Local SNS Topics per Environment
+
+**Context:** CloudWatch alarms need to send notifications for each environment.
+
+**Decision:** Create local SNS topics in each account rather than cross-account notifications.
+
+**Rationale:**
+- Simpler IAM configuration (no cross-account SNS policies)
+- Environment isolation for notifications
+- Each environment can have different notification recipients if needed
+- Easier to troubleshoot notification issues
+
+### Decision 4: Pipeline in Beta Account
+
+**Context:** Requirement 4.7 specifies the pipeline should reside in the Beta account.
+
+**Decision:** Host the CDK Pipeline in the Beta account, deploying to Beta (same account), Gamma, and Prod (cross-account).
+
+**Rationale:**
+- Minimizes the number of AWS accounts required (no dedicated tooling account)
+- Beta deployment is simpler (no cross-account IAM needed)
+- Follows AWS best practices for smaller organizations
+
 ## Data Models
 
 ### Environment Configuration
@@ -578,9 +673,11 @@ Based on the acceptance criteria analysis, the following properties can be verif
 *For any* CloudFront distribution, the default cache behavior SHALL have a TTL of 24 hours (86400 seconds).
 **Validates: Requirements 3.3**
 
-**Property 9: ALB TLS termination (Prod only)**
-*For any* Prod environment ALB listener, the listener SHALL use HTTPS (port 443) with an ACM certificate ARN. Beta and Gamma environments SHALL use HTTP on auto-generated ALB DNS names.
-**Validates: Requirements 8.4, 8.5**
+**Property 9: ALB TLS termination**
+*For any* environment ALB listener, the listener SHALL use HTTPS (port 443) with an ACM certificate ARN and custom domain. All environments use custom subdomains (e.g., `api.beta.canvalo.com`, `api.gamma.canvalo.com`, `api.prod.canvalo.com`).
+**Validates: Requirements 8.3, 8.5, 8.7**
+
+**Design Decision:** The original requirements (8.2, 8.4) specified HTTP with auto-generated ALB DNS for Beta/Gamma. However, the implementation uses HTTPS with custom domains for all environments to simplify configuration and ensure consistent security posture. This is a deviation from the original requirements that provides better security without significant additional cost.
 
 **Property 10: CloudWatch log retention**
 *For any* ECS log group, the retention period SHALL be set to 30 days.
@@ -596,15 +693,23 @@ Based on the acceptance criteria analysis, the following properties can be verif
 
 **Property 13: CloudWatch alarms**
 *For any* environment, CloudWatch alarms SHALL be configured for unhealthy task count and ALB 5xx error rate.
-**Validates: Requirements 10.3, 10.4**
+**Validates: Requirements 11.3, 11.4**
+
+**Property 14: ALB access logging**
+*For any* environment, the ALB SHALL have access logging enabled to an S3 bucket with appropriate lifecycle policies.
+**Validates: Requirements 11.2**
+
+**Property 15: CloudWatch dashboard (Prod only)**
+*For any* prod environment, a CloudWatch dashboard SHALL exist with widgets for request count, latency, error rates, and task health.
+**Validates: Requirements 11.5**
 
 ### Application Properties (Unit Tests)
 
-**Property 14: Configuration source fallback**
+**Property 16: Configuration source fallback**
 *For any* backend startup, WHEN AWS_SECRETS_NAME is not set THEN configuration SHALL be loaded from environment variables and .env files; WHEN AWS_SECRETS_NAME is set THEN configuration SHALL be loaded from Secrets Manager.
 **Validates: Requirements 9.1, 9.2, 9.3**
 
-**Property 15: Environment-based auth enforcement**
+**Property 17: Environment-based auth enforcement**
 *For any* ENVIRONMENT value, the backend SHALL enforce JWT authentication when ENVIRONMENT is "production" and allow optional authentication otherwise.
 **Validates: Requirements 7.4**
 
@@ -708,6 +813,97 @@ const unhealthyTasksAlarm = new cloudwatch.Alarm(this, 'UnhealthyTasks', {
 });
 unhealthyTasksAlarm.addAlarmAction(new cw_actions.SnsAction(alarmTopic));
 ```
+
+### ALB Access Logging
+
+ALB access logs are stored in S3 for request analysis and troubleshooting.
+
+**Implementation:**
+
+```typescript
+// S3 bucket for ALB access logs
+const albLogsBucket = new s3.Bucket(this, 'AlbAccessLogs', {
+  bucketName: `canvalo-${environment}-alb-logs`,
+  encryption: s3.BucketEncryption.S3_MANAGED,
+  blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+  lifecycleRules: [
+    {
+      expiration: cdk.Duration.days(90),  // Retain logs for 90 days
+    },
+  ],
+  removalPolicy: environment === 'prod' 
+    ? cdk.RemovalPolicy.RETAIN 
+    : cdk.RemovalPolicy.DESTROY,
+});
+
+// Enable ALB access logging
+loadBalancer.logAccessLogs(albLogsBucket, `alb-logs/${environment}`);
+```
+
+**Log Format:** ALB access logs include request timestamp, client IP, target IP, request processing time, response status codes, and request/response sizes.
+
+**Validates: Requirements 11.2**
+
+### CloudWatch Dashboard (Production)
+
+A CloudWatch dashboard provides visibility into key application metrics for the production environment.
+
+**Dashboard Widgets:**
+
+| Widget | Metric | Description |
+|--------|--------|-------------|
+| Request Count | ALB RequestCount | Total requests per minute |
+| Response Time | ALB TargetResponseTime | P50, P90, P99 latency |
+| Error Rate | ALB HTTPCode_Target_5XX_Count | 5xx errors per minute |
+| Task Health | ECS RunningTaskCount | Number of healthy tasks |
+| CPU Utilization | ECS CPUUtilization | Average CPU across tasks |
+| Memory Utilization | ECS MemoryUtilization | Average memory across tasks |
+
+**Implementation:**
+
+```typescript
+// Production CloudWatch Dashboard
+const dashboard = new cloudwatch.Dashboard(this, 'CanvaloDashboard', {
+  dashboardName: 'canvalo-prod-dashboard',
+});
+
+dashboard.addWidgets(
+  new cloudwatch.GraphWidget({
+    title: 'Request Count',
+    left: [loadBalancer.metricRequestCount()],
+    width: 8,
+  }),
+  new cloudwatch.GraphWidget({
+    title: 'Response Time',
+    left: [
+      loadBalancer.metricTargetResponseTime({ statistic: 'p50' }),
+      loadBalancer.metricTargetResponseTime({ statistic: 'p90' }),
+      loadBalancer.metricTargetResponseTime({ statistic: 'p99' }),
+    ],
+    width: 8,
+  }),
+  new cloudwatch.GraphWidget({
+    title: 'Error Rate',
+    left: [loadBalancer.metricHttpCodeTarget(HttpCodeTarget.TARGET_5XX_COUNT)],
+    width: 8,
+  }),
+);
+
+dashboard.addWidgets(
+  new cloudwatch.GraphWidget({
+    title: 'ECS Task Health',
+    left: [service.metricCpuUtilization(), service.metricMemoryUtilization()],
+    width: 12,
+  }),
+  new cloudwatch.SingleValueWidget({
+    title: 'Running Tasks',
+    metrics: [service.metric('RunningTaskCount')],
+    width: 6,
+  }),
+);
+```
+
+**Validates: Requirements 11.5**
 
 **Cross-Account Notifications:**
 
@@ -849,6 +1045,7 @@ def test_config_source_selection(use_secrets_manager, secret_name, env_value):
 | Backend Unit Tests | pytest | Verify config loading, error handling |
 | Backend Property Tests | pytest + hypothesis | Verify config properties |
 | Integration Tests | pytest | Verify deployed infrastructure |
+| Monitoring Tests | Jest + CDK assertions | Verify alarms, dashboards, logging |
 
 ### Frontend Build and Deployment
 
@@ -873,11 +1070,11 @@ flowchart LR
 
 | Variable | Beta | Gamma | Prod |
 |----------|------|-------|------|
-| VITE_API_URL | Auto-generated ALB DNS | Auto-generated ALB DNS | api.canvalo.com (custom domain) |
+| VITE_API_URL | `https://api.beta.{domain}` | `https://api.gamma.{domain}` | `https://api.prod.{domain}` |
 | VITE_SUPABASE_URL | Shared Supabase URL | Shared Supabase URL | Shared Supabase URL |
 | VITE_SUPABASE_ANON_KEY | From Secrets Manager | From Secrets Manager | From Secrets Manager |
 
-**Note:** Beta and Gamma use auto-generated AWS URLs (no custom domains or ACM certificates). Prod uses custom domains with ACM certificates and Route53 records. Initially all environments share the same Supabase instance.
+**Note:** All environments use custom domains with ACM certificates and Route53 records. The domain structure follows the pattern `{service}.{env}.{domainName}` (e.g., `api.beta.canvalo.com`, `canvalofrontend.beta.canvalo.com`). Initially all environments share the same Supabase instance.
 
 **Frontend Stack Components:**
 
@@ -931,7 +1128,8 @@ infrastructure/
 │   ├── unit/
 │   │   ├── backend-stack.test.ts
 │   │   ├── frontend-stack.test.ts
-│   │   └── pipeline-stack.test.ts
+│   │   ├── pipeline-stack.test.ts
+│   │   └── monitoring.test.ts          # Alarms, dashboard, ALB logging
 │   └── property/
 │       ├── environment-config.property.test.ts
 │       ├── secrets-integration.property.test.ts
