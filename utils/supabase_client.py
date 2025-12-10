@@ -11,7 +11,6 @@ This module provides a robust Supabase client with:
 
 import os
 import logging
-import asyncio
 from typing import Optional, TypeVar, Callable, Any, Dict, List
 from functools import wraps
 from supabase import create_client, Client
@@ -64,7 +63,7 @@ def retry_with_backoff(
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         @wraps(func)
         def wrapper(*args, **kwargs) -> T:
-            last_exception = None
+            last_exception: Optional[Exception] = None 
             
             for attempt in range(max_attempts):
                 try:
@@ -85,6 +84,8 @@ def retry_with_backoff(
                             f"All {max_attempts} attempts failed. Last error: {str(e)}"
                         )
             
+            if last_exception is None:
+                raise RuntimeError("Operation failed after retries, but no exception was captured.")
             raise last_exception
         
         return wrapper
@@ -355,7 +356,10 @@ class SupabaseClientWrapper:
         )
         
         # Return the service key client
-        return self._client
+        return create_client(
+            supabase_url=str(os.getenv("SUPABASE_URL")),
+            supabase_key=service_key
+        )
 
 
 # Global instance
