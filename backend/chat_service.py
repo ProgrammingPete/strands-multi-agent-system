@@ -44,7 +44,79 @@ class ChatService:
         """Initialize the chat service."""
         self.context_manager = ContextManager()
         self._last_sse_time = 0
+        self._created_conversations = set()  # Track conversations we've created this session
         logger.info("ChatService initialized with optimized streaming")
+    
+    async def _ensure_conversation_exists(
+        self,
+        conversation_id: str,
+        user_id: str,
+        jwt_token: str = None
+    ) -> None:
+        """
+        Ensure a conversation exists before saving messages.
+        Creates the conversation if it doesn't exist.
+        
+        Args:
+            conversation_id: Conversation ID
+            user_id: User ID
+            jwt_token: Optional JWT token for user-scoped operations
+        """
+        # Skip if we already created this conversation in this session
+        if conversation_id in self._created_conversations:
+            return
+        
+        try:
+            from backend.conversation_service import ConversationService
+            from backend.models import ConversationCreate
+            
+            service = ConversationService()
+            
+            # Try to get the conversation first
+            try:
+                await service.get_conversation(
+                    conversation_id=conversation_id,
+                    user_id=user_id,
+                    message_limit=1,
+                    jwt_token=jwt_token
+                )
+                # Conversation exists, mark it and return
+                self._created_conversations.add(conversation_id)
+                logger.info(f"Conversation {conversation_id} already exists")
+                return
+            except ValueError:
+                # Conversation doesn't exist, create it
+                pass
+            
+            # Create the conversation
+            logger.info(f"Creating conversation {conversation_id} for user {user_id}")
+            
+            # Use the Supabase client directly to insert with specific ID
+            import os
+            environment = os.getenv("ENVIRONMENT", "development")
+            
+            if environment == "development":
+                client = service.supabase.client
+            elif jwt_token:
+                client = service.supabase.create_user_scoped_client(jwt_token)
+            else:
+                client = service.supabase.client
+            
+            data = {
+                "id": conversation_id,
+                "user_id": user_id,
+                "title": "AI Chat",
+                "metadata": {},
+            }
+            
+            client.schema("api").table("agent_conversations").insert(data).execute()
+            
+            self._created_conversations.add(conversation_id)
+            logger.info(f"Created conversation {conversation_id}")
+            
+        except Exception as e:
+            # Log but don't fail - the message save will fail with a clearer error if needed
+            logger.warning(f"Could not ensure conversation exists: {e}")
     
     async def stream_chat_response(
         self,
@@ -66,11 +138,19 @@ class ChatService:
             logger.info(f"User message: {request.message[:100]}...")
             logger.info(f"User ID: {request.user_id}")
             
+            # Ensure conversation exists before saving messages (auto-create if needed)
+            await self._ensure_conversation_exists(
+                conversation_id=request.conversation_id,
+                user_id=request.user_id,
+                jwt_token=jwt_token
+            )
+            
             # Save user message to database
             await self.context_manager.save_message(
                 conversation_id=request.conversation_id,
                 content=request.message,
                 role="user",
+                user_id=request.user_id,
                 jwt_token=jwt_token
             )
             
@@ -99,6 +179,7 @@ class ChatService:
                     conversation_id=request.conversation_id,
                     content="".join(full_response),
                     role="assistant",
+                    user_id=request.user_id,
                     agent_type=AgentType.SUPERVISOR.value,
                     jwt_token=jwt_token
                 )

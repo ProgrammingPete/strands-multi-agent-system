@@ -134,8 +134,10 @@ class SupabaseClientWrapper:
             supabase_key = os.getenv("SUPABASE_ANON_KEY")
             if not supabase_key:
                 supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
+            logger.info(f"Production mode: using {'anon' if supabase_key == os.getenv('SUPABASE_ANON_KEY') else 'service'} key")
         else:
             supabase_key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_ANON_KEY")
+            logger.info(f"Development mode: using {'service' if supabase_key == os.getenv('SUPABASE_SERVICE_KEY') else 'anon'} key")
         
         if not supabase_url or not supabase_key:
             raise SupabaseConnectionError(

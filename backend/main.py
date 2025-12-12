@@ -218,6 +218,7 @@ async def stream_chat(
         HTTPException 403: User ID mismatch between request and JWT
     """
     logger.info(f"Received chat request for conversation {request.conversation_id}")
+    logger.info(f"Authorization header present: {bool(authorization)}")
     
     # Extract and validate JWT token
     jwt_token = None

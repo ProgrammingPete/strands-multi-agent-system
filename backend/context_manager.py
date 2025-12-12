@@ -278,6 +278,7 @@ class ContextManager:
         conversation_id: str,
         content: str,
         role: str,
+        user_id: Optional[str] = None,
         agent_type: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         jwt_token: Optional[str] = None
@@ -289,6 +290,7 @@ class ContextManager:
             conversation_id: Conversation ID
             content: Message content
             role: Message role (user or assistant)
+            user_id: User ID (required for RLS policies)
             agent_type: Agent type (for assistant messages)
             metadata: Additional metadata
             jwt_token: Optional JWT token for user-scoped operations (RLS)
@@ -301,6 +303,7 @@ class ContextManager:
                 conversation_id=conversation_id,
                 content=content,
                 role=role,
+                user_id=user_id,
                 agent_type=agent_type,
                 metadata=metadata,
                 jwt_token=jwt_token

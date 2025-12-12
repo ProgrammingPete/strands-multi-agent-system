@@ -41,7 +41,19 @@ class ConversationService:
             self.supabase = None
     
     def _get_client(self, jwt_token: Optional[str] = None):
-        """Get appropriate Supabase client based on JWT availability."""
+        """Get appropriate Supabase client based on JWT availability.
+        
+        In development mode, always use the service key client to bypass RLS.
+        In production, use user-scoped client with JWT for RLS enforcement.
+        """
+        import os
+        environment = os.getenv("ENVIRONMENT", "development")
+        
+        # In development, always use service key to bypass RLS
+        if environment == "development":
+            return self.supabase.client
+        
+        # In production, use user-scoped client if JWT provided
         if jwt_token:
             return self.supabase.create_user_scoped_client(jwt_token)
         return self.supabase.client
@@ -356,6 +368,7 @@ class ConversationService:
         conversation_id: str,
         content: str,
         role: str,
+        user_id: Optional[str] = None,
         agent_type: Optional[str] = None,
         metadata: Optional[dict] = None,
         jwt_token: Optional[str] = None
@@ -367,6 +380,7 @@ class ConversationService:
             conversation_id: Conversation ID
             content: Message content
             role: Message role (user or assistant)
+            user_id: User ID (required for RLS policies)
             agent_type: Agent type (for assistant messages)
             metadata: Additional metadata
             jwt_token: Optional JWT token for user-scoped operations (RLS)
