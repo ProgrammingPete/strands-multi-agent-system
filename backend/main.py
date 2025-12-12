@@ -3,6 +3,7 @@ FastAPI backend service for multi-agent chat system.
 Provides REST API endpoints for chat streaming and conversation management.
 """
 import logging
+import time
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,6 +21,10 @@ from backend.models import (
 from backend.chat_service import ChatService
 from backend.conversation_service import ConversationService
 from backend.auth_middleware import validate_jwt, AuthenticationError
+
+# Import optimization modules
+from utils.supabase_cache import start_cache_cleanup_task, get_cache
+from utils.supabase_pool import start_connection_pool, stop_connection_pool, get_connection_pool
 
 # Configure logging
 logging.basicConfig(
@@ -55,9 +60,32 @@ async def lifespan(app: FastAPI):
             logger.critical(f"  - {error}")
         raise
     
+    # Start optimization services
+    try:
+        # Start connection pool
+        await start_connection_pool()
+        logger.info("Connection pool started")
+        
+        # Start cache cleanup task
+        await start_cache_cleanup_task()
+        logger.info("Cache cleanup task started")
+        
+        logger.info("All optimization services started successfully")
+    except Exception as e:
+        logger.error(f"Failed to start optimization services: {e}")
+        # Don't fail startup for optimization services
+    
     yield
+    
     # Shutdown
     logger.info("Shutting down FastAPI backend service")
+    
+    # Stop optimization services
+    try:
+        await stop_connection_pool()
+        logger.info("Connection pool stopped")
+    except Exception as e:
+        logger.error(f"Error stopping optimization services: {e}")
 
 
 # Create FastAPI app
@@ -110,6 +138,54 @@ async def health_check():
         "supabase_configured": bool(settings.supabase_url),
         "bedrock_model": settings.bedrock_model_id,
     }
+
+
+@app.get("/api/optimization/stats")
+async def get_optimization_stats():
+    """
+    Get optimization statistics for monitoring performance improvements.
+    
+    Returns:
+        Statistics about cache usage, connection pooling, and performance metrics
+    """
+    try:
+        # Get cache statistics
+        cache = get_cache()
+        cache_stats = cache.get_stats()
+        
+        # Get connection pool statistics
+        pool = get_connection_pool()
+        pool_stats = pool.get_stats()
+        
+        return {
+            "cache": {
+                "total_entries": cache_stats["total_entries"],
+                "active_entries": cache_stats["active_entries"],
+                "expired_entries": cache_stats["expired_entries"],
+                "utilization_percent": round(cache_stats["utilization"] * 100, 2),
+                "max_size": cache_stats["max_size"]
+            },
+            "connection_pool": {
+                "total_connections": pool_stats.total_connections,
+                "active_connections": pool_stats.active_connections,
+                "idle_connections": pool_stats.idle_connections,
+                "total_requests": pool_stats.total_requests,
+                "cache_hits": pool_stats.cache_hits,
+                "cache_misses": pool_stats.cache_misses,
+                "hit_rate_percent": round(
+                    (pool_stats.cache_hits / max(pool_stats.total_requests, 1)) * 100, 2
+                ),
+                "average_request_time_ms": round(pool_stats.average_request_time_ms, 2)
+            },
+            "timestamp": time.time()
+        }
+    except Exception as e:
+        logger.error(f"Error getting optimization stats: {e}")
+        return {
+            "error": "Failed to retrieve optimization statistics",
+            "cache": {"status": "unavailable"},
+            "connection_pool": {"status": "unavailable"}
+        }
 
 
 @app.post("/api/chat/stream")
