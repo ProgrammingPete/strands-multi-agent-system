@@ -144,7 +144,7 @@ class Settings(BaseSettings):
     
     # Supabase Configuration
     supabase_url: str = _get_config_value("SUPABASE_URL", "")
-    supabase_service_key: str = _get_config_value("SUPABASE_SERVICE_KEY", "")
+    supabase_secret_key: str = _get_config_value("SUPABASE_SECRET_KEY", "")
     supabase_anon_key: str = _get_config_value("SUPABASE_ANON_KEY", "")
     
     # AWS Configuration
@@ -206,9 +206,9 @@ class Settings(BaseSettings):
         return self.environment.lower() == "development"
     
     @property
-    def has_service_key(self) -> bool:
-        """Check if service key is configured."""
-        return bool(self.supabase_service_key)
+    def has_secret_key(self) -> bool:
+        """Check if secret key is configured."""
+        return bool(self.supabase_secret_key)
     
     @property
     def has_anon_key(self) -> bool:
@@ -227,12 +227,12 @@ class Settings(BaseSettings):
         if not self.is_production:
             return issues
         
-        # In production, service key should NOT be set
-        if self.supabase_service_key:
+        # In production, secret key should NOT be set
+        if self.supabase_secret_key:
             issues.append(
-                "SECURITY WARNING: SUPABASE_SERVICE_KEY is set in production. "
+                "SECURITY WARNING: SUPABASE_SECRET_KEY is set in production. "
                 "This bypasses RLS policies and is a security risk. "
-                "Remove SUPABASE_SERVICE_KEY from production environment."
+                "Remove SUPABASE_SECRET_KEY from production environment."
             )
         
         # In production, anon key MUST be set
@@ -271,9 +271,9 @@ class Settings(BaseSettings):
         
         # Check production-specific issues
         if self.is_production:
-            if self.supabase_service_key:
+            if self.supabase_secret_key:
                 warnings.append(
-                    "SUPABASE_SERVICE_KEY is set in production - RLS will be bypassed"
+                    "SUPABASE_SECRET_KEY is set in production - RLS will be bypassed"
                 )
             if not self.supabase_anon_key:
                 errors.append(
@@ -281,9 +281,9 @@ class Settings(BaseSettings):
                 )
         else:
             # Development warnings
-            if self.supabase_service_key:
+            if self.supabase_secret_key:
                 warnings.append(
-                    "Using SUPABASE_SERVICE_KEY in development - RLS bypassed for service key operations"
+                    "Using SUPABASE_SECRET_KEY in development - RLS bypassed for secret key operations"
                 )
             if not self.supabase_anon_key:
                 warnings.append(
@@ -292,13 +292,13 @@ class Settings(BaseSettings):
         
         is_valid = len(errors) == 0
         if self.is_production:
-            # In production, also require no service key for full validity
-            is_valid = is_valid and not self.supabase_service_key
+            # In production, also require no secret key for full validity
+            is_valid = is_valid and not self.supabase_secret_key
         
         return {
             "environment": self.environment,
             "config_source": self._config_source,
-            "has_service_key": self.has_service_key,
+            "has_secret_key": self.has_secret_key,
             "has_anon_key": self.has_anon_key,
             "is_valid": is_valid,
             "warnings": warnings,
@@ -351,6 +351,6 @@ def validate_startup_configuration() -> None:
         f"Configuration validated: environment={config_status['environment']}, "
         f"config_source={config_status['config_source']}, "
         f"has_anon_key={config_status['has_anon_key']}, "
-        f"has_service_key={config_status['has_service_key']}, "
+        f"has_secret_key={config_status['has_secret_key']}, "
         f"is_valid={config_status['is_valid']}"
     )

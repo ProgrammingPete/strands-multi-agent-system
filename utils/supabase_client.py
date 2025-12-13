@@ -129,15 +129,15 @@ class SupabaseClientWrapper:
         environment = os.getenv("ENVIRONMENT", "development")
         
         # In production, prefer anon key (respects RLS)
-        # In development, prefer service key if available (for admin operations)
+        # In development, prefer secret key if available (for admin operations)
         if environment == "production":
             supabase_key = os.getenv("SUPABASE_ANON_KEY")
             if not supabase_key:
-                supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
-            logger.info(f"Production mode: using {'anon' if supabase_key == os.getenv('SUPABASE_ANON_KEY') else 'service'} key")
+                supabase_key = os.getenv("SUPABASE_SECRET_KEY")
+            logger.info(f"Production mode: using {'anon' if supabase_key == os.getenv('SUPABASE_ANON_KEY') else 'secret'} key")
         else:
-            supabase_key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_ANON_KEY")
-            logger.info(f"Development mode: using {'service' if supabase_key == os.getenv('SUPABASE_SERVICE_KEY') else 'anon'} key")
+            supabase_key = os.getenv("SUPABASE_SECRET_KEY") or os.getenv("SUPABASE_ANON_KEY")
+            logger.info(f"Development mode: using {'secret' if supabase_key == os.getenv('SUPABASE_SECRET_KEY') else 'anon'} key")
         
         if not supabase_url or not supabase_key:
             raise SupabaseConnectionError(
@@ -281,15 +281,15 @@ class SupabaseClientWrapper:
                 - is_valid: bool indicating if configuration is valid
                 - warnings: list of warning messages
         """
-        service_key = os.getenv("SUPABASE_SERVICE_KEY")
+        secret_key = os.getenv("SUPABASE_SECRET_KEY")
         anon_key = os.getenv("SUPABASE_ANON_KEY")
         environment = os.getenv("ENVIRONMENT", "development")
         
         warnings: List[str] = []
         
-        # Check for service key in production
-        if service_key and environment == "production":
-            warning_msg = "WARNING: SUPABASE_SERVICE_KEY is set in production - RLS will be bypassed for service key operations"
+        # Check for secret key in production
+        if secret_key and environment == "production":
+            warning_msg = "WARNING: SUPABASE_SECRET_KEY is set in production - RLS will be bypassed for secret key operations"
             warnings.append(warning_msg)
             logger.warning(warning_msg)
         
@@ -299,12 +299,12 @@ class SupabaseClientWrapper:
             warnings.append(warning_msg)
             logger.warning(warning_msg)
         
-        # Log if using service key (RLS bypass)
-        if service_key:
-            logger.info("Service key configured - RLS will be bypassed for service key client")
+        # Log if using secret key (RLS bypass)
+        if secret_key:
+            logger.info("Secret key configured - RLS will be bypassed for secret key client")
         
         # Determine key type being used by default client
-        key_type = "service_key" if service_key else "anon_key"
+        key_type = "secret_key" if secret_key else "anon_key"
         
         return {
             "key_type": key_type,
@@ -321,9 +321,9 @@ class SupabaseClientWrapper:
         resource: Optional[str] = None
     ) -> Client:
         """
-        Get a Supabase client with service key for admin operations.
+        Get a Supabase client with secret key for admin operations.
         
-        This method validates admin credentials before returning a service key
+        This method validates admin credentials before returning a secret key
         client that bypasses RLS. Use with extreme caution and only for
         legitimate admin operations.
         
@@ -333,34 +333,34 @@ class SupabaseClientWrapper:
             resource: Optional resource identifier being accessed
             
         Returns:
-            Supabase client with service key (bypasses RLS)
+            Supabase client with secret key (bypasses RLS)
             
         Raises:
             AdminAuthenticationError: If admin credentials are invalid
-            SupabaseConnectionError: If service key is not configured
+            SupabaseConnectionError: If secret key is not configured
         """
         from backend.admin_auth import validate_admin_operation, AdminAuthenticationError
         
         # Validate admin credentials first
         validate_admin_operation(admin_api_key, operation, resource)
         
-        # Verify service key is available
-        service_key = os.getenv("SUPABASE_SERVICE_KEY")
-        if not service_key:
+        # Verify secret key is available
+        secret_key = os.getenv("SUPABASE_SECRET_KEY")
+        if not secret_key:
             raise SupabaseConnectionError(
-                "SUPABASE_SERVICE_KEY not configured - admin operations unavailable"
+                "SUPABASE_SECRET_KEY not configured - admin operations unavailable"
             )
         
-        # Log that service key is being used for admin operation
+        # Log that secret key is being used for admin operation
         logger.warning(
             f"Admin client created for operation: {operation}. "
             "RLS policies will be bypassed."
         )
         
-        # Return the service key client
+        # Return the secret key client
         return create_client(
             supabase_url=str(os.getenv("SUPABASE_URL")),
-            supabase_key=service_key
+            supabase_key=secret_key
         )
 
 
