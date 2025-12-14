@@ -50,6 +50,14 @@
             ],
             "justMyCode": false,
             "stopOnEntry": false
+        },
+        {
+            "name": "api",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "backend.main",
+            "console": "internalConsole",
+            "justMyCode": true
         }
     ]
 }

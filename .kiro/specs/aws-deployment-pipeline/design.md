@@ -1063,7 +1063,7 @@ flowchart LR
     
     ENV[VITE_API_URL] --> C
     ENV2[VITE_SUPABASE_URL] --> C
-    ENV3[VITE_SUPABASE_ANON_KEY] --> C
+    ENV3[VITE_SUPABASE_PUB_KEY] --> C
 ```
 
 **Environment Variables Injected at Build:**
@@ -1072,7 +1072,7 @@ flowchart LR
 |----------|------|-------|------|
 | VITE_API_URL | `https://api.beta.{domain}` | `https://api.gamma.{domain}` | `https://api.prod.{domain}` |
 | VITE_SUPABASE_URL | Shared Supabase URL | Shared Supabase URL | Shared Supabase URL |
-| VITE_SUPABASE_ANON_KEY | From Secrets Manager | From Secrets Manager | From Secrets Manager |
+| VITE_SUPABASE_PUB_KEY | From Secrets Manager | From Secrets Manager | From Secrets Manager |
 
 **Note:** All environments use custom domains with ACM certificates and Route53 records. The domain structure follows the pattern `{service}.{env}.{domainName}` (e.g., `api.beta.canvalo.com`, `canvalofrontend.beta.canvalo.com`). Initially all environments share the same Supabase instance.
 
@@ -1114,7 +1114,7 @@ const frontendBuild = new pipelines.CodeBuildStep('FrontendBuild', {
   env: {
     VITE_API_URL: apiUrl,
     VITE_SUPABASE_URL: supabaseUrl,
-    VITE_SUPABASE_ANON_KEY: supabaseAnonKey,
+    VITE_SUPABASE_PUB_KEY: supabasePubKey,
   },
   primaryOutputDirectory: 'CanvaloFrontend/dist',
 });

@@ -1150,7 +1150,7 @@ def test_query_preservation(original_query):
 ```bash
 # Frontend (.env)
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_SUPABASE_PUB_KEY=your-anon-key
 VITE_AGENT_API_URL=https://your-backend.com/api
 
 # Backend (.env)
