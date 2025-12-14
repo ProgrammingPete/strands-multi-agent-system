@@ -98,6 +98,9 @@ cd strands-multi-agent-system
 2. Create and activate virtual environment:
 ```bash
 python -m venv .venv
+or
+uv venv
+then 
 source .venv/bin/activate  # On macOS/Linux
 # or
 .venv\Scripts\activate  # On Windows
