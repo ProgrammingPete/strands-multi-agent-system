@@ -19,7 +19,7 @@
    ```bash
    # Required for Supabase
    SUPABASE_URL=https://your-project.supabase.co
-   SUPABASE_ANON_KEY=your-anon-key-here      # For user operations (RLS enforced)
+   SUPABASE_PUB_KEY=your-pub-key-here      # For user operations (RLS enforced)
    SUPABASE_SERVICE_KEY=your-service-key-here # For system operations (dev only)
    
    # Required for AI agents
@@ -44,7 +44,7 @@ cp .env.production.example .env
 
 **Important Production Security Requirements:**
 - Do NOT include `SUPABASE_SERVICE_KEY` (bypasses RLS security)
-- Must include `SUPABASE_ANON_KEY` (required for user authentication)
+- Must include `SUPABASE_PUB_KEY` (required for user authentication)
 - Set `ENVIRONMENT=production`
 - Set `ADMIN_API_KEY` for admin operations (generate with `python -c "import secrets; print(secrets.token_urlsafe(32))"`)
 
@@ -152,7 +152,7 @@ Watch the console output for request/response logs and errors
 
 Before deploying to production:
 - [ ] Remove `SUPABASE_SERVICE_KEY` from environment
-- [ ] Set `SUPABASE_ANON_KEY` for user authentication
+- [ ] Set `SUPABASE_PUB_KEY` for user authentication
 - [ ] Set `ENVIRONMENT=production`
 - [ ] Generate and set `ADMIN_API_KEY` for admin operations
 - [ ] Configure CORS origins for your production domain

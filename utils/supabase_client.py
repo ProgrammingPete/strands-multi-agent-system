@@ -118,8 +118,8 @@ class SupabaseClientWrapper:
         """
         Initialize the Supabase client with configuration from environment variables.
         
-        In production, uses SUPABASE_ANON_KEY (respects RLS).
-        In development, prefers SUPABASE_SERVICE_KEY if available, falls back to anon key.
+        In production, uses SUPABASE_PUB_KEY (respects RLS).
+        In development, prefers SUPABASE_SERVICE_KEY if available, falls back to pub key.
         
         Raises:
             SupabaseConnectionError: If required environment variables are missing
@@ -128,20 +128,20 @@ class SupabaseClientWrapper:
         supabase_url = os.getenv("SUPABASE_URL")
         environment = os.getenv("ENVIRONMENT", "development")
         
-        # In production, prefer anon key (respects RLS)
+        # In production, prefer pub key (respects RLS)
         # In development, prefer secret key if available (for admin operations)
         if environment == "production":
-            supabase_key = os.getenv("SUPABASE_ANON_KEY")
+            supabase_key = os.getenv("SUPABASE_PUB_KEY")
             if not supabase_key:
                 supabase_key = os.getenv("SUPABASE_SECRET_KEY")
-            logger.info(f"Production mode: using {'anon' if supabase_key == os.getenv('SUPABASE_ANON_KEY') else 'secret'} key")
+            logger.info(f"Production mode: using {'anon' if supabase_key == os.getenv('SUPABASE_PUB_KEY') else 'secret'} key")
         else:
-            supabase_key = os.getenv("SUPABASE_SECRET_KEY") or os.getenv("SUPABASE_ANON_KEY")
+            supabase_key = os.getenv("SUPABASE_SECRET_KEY") or os.getenv("SUPABASE_PUB_KEY")
             logger.info(f"Development mode: using {'secret' if supabase_key == os.getenv('SUPABASE_SECRET_KEY') else 'anon'} key")
         
         if not supabase_url or not supabase_key:
             raise SupabaseConnectionError(
-                "Missing required environment variables: SUPABASE_URL and/or SUPABASE_ANON_KEY"
+                "Missing required environment variables: SUPABASE_URL and/or SUPABASE_PUB_KEY"
             )
         
         try:
@@ -226,7 +226,7 @@ class SupabaseClientWrapper:
         """
         Create a Supabase client scoped to a specific user.
         
-        This client respects RLS policies by using the anon key with
+        This client respects RLS policies by using the pub key with
         the user's JWT token in the Authorization header. All queries
         made with this client will be filtered by RLS policies.
         
@@ -234,30 +234,30 @@ class SupabaseClientWrapper:
             user_jwt: User's JWT token (without 'Bearer ' prefix)
             
         Returns:
-            Supabase client configured with user JWT and anon key
+            Supabase client configured with user JWT and pub key
             
         Raises:
-            SupabaseConnectionError: If SUPABASE_ANON_KEY is not configured
+            SupabaseConnectionError: If SUPABASE_PUB_KEY is not configured
         """
         supabase_url = os.getenv("SUPABASE_URL")
-        anon_key = os.getenv("SUPABASE_ANON_KEY")
+        pub_key = os.getenv("SUPABASE_PUB_KEY")
         
         if not supabase_url:
             raise SupabaseConnectionError("SUPABASE_URL not configured")
         
-        if not anon_key:
+        if not pub_key:
             raise SupabaseConnectionError(
-                "SUPABASE_ANON_KEY not configured - user-scoped operations unavailable"
+                "SUPABASE_PUB_KEY not configured - user-scoped operations unavailable"
             )
         
         # Strip 'Bearer ' prefix if present
         if user_jwt.startswith("Bearer "):
             user_jwt = user_jwt[7:]
         
-        # Create base client with anon key
+        # Create base client with pub key
         client = create_client(
             supabase_url=supabase_url,
-            supabase_key=anon_key
+            supabase_key=pub_key
         )
         
         # Override the authorization header to use user's JWT
@@ -272,17 +272,17 @@ class SupabaseClientWrapper:
         Verify Supabase key configuration on startup.
         
         Logs warnings if using secret key in production or if
-        anon key is not configured for user-scoped operations.
+        pub key is not configured for user-scoped operations.
         
         Returns:
             dict with:
-                - key_type: 'service_key' or 'anon_key'
-                - has_anon_key: bool indicating if anon key is available
+                - key_type: 'service_key' or 'pub_key'
+                - has_pub_key: bool indicating if pub key is available
                 - is_valid: bool indicating if configuration is valid
                 - warnings: list of warning messages
         """
         secret_key = os.getenv("SUPABASE_SECRET_KEY")
-        anon_key = os.getenv("SUPABASE_ANON_KEY")
+        pub_key = os.getenv("SUPABASE_PUB_KEY")
         environment = os.getenv("ENVIRONMENT", "development")
         
         warnings: List[str] = []
@@ -293,9 +293,9 @@ class SupabaseClientWrapper:
             warnings.append(warning_msg)
             logger.warning(warning_msg)
         
-        # Check for missing anon key
-        if not anon_key:
-            warning_msg = "WARNING: SUPABASE_ANON_KEY not configured - user-scoped operations unavailable"
+        # Check for missing pub key
+        if not pub_key:
+            warning_msg = "WARNING: SUPABASE_PUB_KEY not configured - user-scoped operations unavailable"
             warnings.append(warning_msg)
             logger.warning(warning_msg)
         
@@ -304,12 +304,12 @@ class SupabaseClientWrapper:
             logger.info("Secret key configured - RLS will be bypassed for secret key client")
         
         # Determine key type being used by default client
-        key_type = "secret_key" if secret_key else "anon_key"
+        key_type = "secret_key" if secret_key else "pub_key"
         
         return {
             "key_type": key_type,
-            "has_anon_key": bool(anon_key),
-            "is_valid": bool(anon_key),  # Valid if anon key is available for user operations
+            "has_pub_key": bool(pub_key),
+            "is_valid": bool(pub_key),  # Valid if pub key is available for user operations
             "warnings": warnings,
             "environment": environment
         }

@@ -82,7 +82,7 @@ The secret key provides full database access:
 
 ### What We Had
 ```bash
-SUPABASE_SERVICE_KEY=eyJhbGci... # This was the anon key (JWT)
+SUPABASE_SERVICE_KEY=eyJhbGci... # This was the pub key (JWT)
 ```
 
 Decoded JWT showed:

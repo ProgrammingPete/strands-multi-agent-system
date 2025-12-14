@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 CONFIG_KEYS = [
     "SUPABASE_URL",
     "SUPABASE_SERVICE_KEY", 
-    "SUPABASE_ANON_KEY",
+    "SUPABASE_PUB_KEY",
     "BEDROCK_MODEL_ID",
     "AWS_REGION",
     "API_HOST",
@@ -65,7 +65,7 @@ def config_dict_strategy():
     return st.fixed_dictionaries({
         "SUPABASE_URL": st.just("https://test.supabase.co"),
         "SUPABASE_SERVICE_KEY": st.text(min_size=10, max_size=50),
-        "SUPABASE_ANON_KEY": st.text(min_size=10, max_size=50),
+        "SUPABASE_PUB_KEY": st.text(min_size=10, max_size=50),
         "BEDROCK_MODEL_ID": st.just("amazon.nova-lite-v1:0"),
         "AWS_REGION": aws_region_strategy,
     })

@@ -8,7 +8,7 @@ Supports two configuration sources:
 
 Security Notes:
 - In production, SUPABASE_SERVICE_KEY should NOT be set
-- Only SUPABASE_ANON_KEY should be used for user operations
+- Only SUPABASE_PUB_KEY should be used for user operations
 - The service key bypasses RLS policies and is a security risk
 """
 import os
@@ -145,7 +145,7 @@ class Settings(BaseSettings):
     # Supabase Configuration
     supabase_url: str = _get_config_value("SUPABASE_URL", "")
     supabase_secret_key: str = _get_config_value("SUPABASE_SECRET_KEY", "")
-    supabase_anon_key: str = _get_config_value("SUPABASE_ANON_KEY", "")
+    SUPABASE_PUB_KEY: str = _get_config_value("SUPABASE_PUB_KEY", "")
     
     # AWS Configuration
     aws_region: str = _get_config_value("AWS_REGION", "us-east-1")
@@ -211,9 +211,9 @@ class Settings(BaseSettings):
         return bool(self.supabase_secret_key)
     
     @property
-    def has_anon_key(self) -> bool:
-        """Check if anon key is configured."""
-        return bool(self.supabase_anon_key)
+    def has_pub_key(self) -> bool:
+        """Check if pub key is configured."""
+        return bool(self.SUPABASE_PUB_KEY)
     
     def validate_production_config(self) -> List[str]:
         """
@@ -235,10 +235,10 @@ class Settings(BaseSettings):
                 "Remove SUPABASE_SECRET_KEY from production environment."
             )
         
-        # In production, anon key MUST be set
-        if not self.supabase_anon_key:
+        # In production, pub key MUST be set
+        if not self.SUPABASE_PUB_KEY:
             issues.append(
-                "ERROR: SUPABASE_ANON_KEY is required in production for user authentication."
+                "ERROR: SUPABASE_PUB_KEY is required in production for user authentication."
             )
         
         # In production, SUPABASE_URL must be set
@@ -261,7 +261,7 @@ class Settings(BaseSettings):
                 - environment: Current environment
                 - config_source: Where configuration was loaded from
                 - has_service_key: Whether service key is configured
-                - has_anon_key: Whether anon key is configured
+                - has_pub_key: Whether pub key is configured
                 - is_valid: Whether configuration is valid for the environment
                 - warnings: List of warning messages
                 - errors: List of error messages
@@ -275,9 +275,9 @@ class Settings(BaseSettings):
                 warnings.append(
                     "SUPABASE_SECRET_KEY is set in production - RLS will be bypassed"
                 )
-            if not self.supabase_anon_key:
+            if not self.SUPABASE_PUB_KEY:
                 errors.append(
-                    "SUPABASE_ANON_KEY is required in production"
+                    "SUPABASE_PUB_KEY is required in production"
                 )
         else:
             # Development warnings
@@ -285,9 +285,9 @@ class Settings(BaseSettings):
                 warnings.append(
                     "Using SUPABASE_SECRET_KEY in development - RLS bypassed for secret key operations"
                 )
-            if not self.supabase_anon_key:
+            if not self.SUPABASE_PUB_KEY:
                 warnings.append(
-                    "SUPABASE_ANON_KEY not configured - user-scoped operations unavailable"
+                    "SUPABASE_PUB_KEY not configured - user-scoped operations unavailable"
                 )
         
         is_valid = len(errors) == 0
@@ -299,7 +299,7 @@ class Settings(BaseSettings):
             "environment": self.environment,
             "config_source": self._config_source,
             "has_secret_key": self.has_secret_key,
-            "has_anon_key": self.has_anon_key,
+            "has_pub_key": self.has_pub_key,
             "is_valid": is_valid,
             "warnings": warnings,
             "errors": errors
@@ -350,7 +350,7 @@ def validate_startup_configuration() -> None:
     logger.info(
         f"Configuration validated: environment={config_status['environment']}, "
         f"config_source={config_status['config_source']}, "
-        f"has_anon_key={config_status['has_anon_key']}, "
+        f"has_pub_key={config_status['has_pub_key']}, "
         f"has_secret_key={config_status['has_secret_key']}, "
         f"is_valid={config_status['is_valid']}"
     )

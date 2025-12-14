@@ -75,9 +75,9 @@ def validate_jwt(jwt_token: str) -> str:
         jwt_token = jwt_token[7:]
     
     try:
-        # Create Supabase client with anon key for JWT verification
+        # Create Supabase client with pub key for JWT verification
         supabase_url = os.getenv("SUPABASE_URL")
-        anon_key = os.getenv("SUPABASE_ANON_KEY")
+        pub_key = os.getenv("SUPABASE_PUB_KEY")
         
         if not supabase_url:
             raise AuthenticationError(
@@ -85,14 +85,14 @@ def validate_jwt(jwt_token: str) -> str:
                 "CONFIGURATION_ERROR"
             )
         
-        if not anon_key:
+        if not pub_key:
             raise AuthenticationError(
-                "SUPABASE_ANON_KEY not configured",
+                "SUPABASE_PUB_KEY not configured",
                 "CONFIGURATION_ERROR"
             )
         
         # Create client for auth verification
-        supabase = create_client(supabase_url, anon_key)
+        supabase = create_client(supabase_url, pub_key)
         
         # Verify JWT and get user using Supabase Auth
         # This validates the JWT signature, expiration, and issuer

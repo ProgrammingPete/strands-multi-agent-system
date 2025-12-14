@@ -104,7 +104,7 @@ except AuthenticationError as e:
 ### User-Scoped Clients
 
 When processing authenticated requests, the backend creates user-scoped Supabase clients that:
-- Use the anon key (not the secret key)
+- Use the pub key (not the secret key)
 - Include the user's JWT in the Authorization header
 - Respect all RLS policies
 
@@ -126,8 +126,8 @@ On startup, verify key configuration:
 ```python
 config = wrapper.verify_key_configuration()
 # Returns: {
-#   "key_type": "service_key" or "anon_key",
-#   "has_anon_key": True/False,
+#   "key_type": "service_key" or "pub_key",
+#   "has_pub_key": True/False,
 #   "is_valid": True/False,
 #   "warnings": [...],
 #   "environment": "development" or "production"
@@ -139,7 +139,7 @@ config = wrapper.verify_key_configuration()
 ### Development (.env)
 ```bash
 SUPABASE_URL=https://project.supabase.co
-SUPABASE_ANON_KEY=eyJhbGci...        # For user operations
+SUPABASE_PUB_KEY=eyJhbGci...        # For user operations
 SUPABASE_SERVICE_KEY=sb_secret_...   # For system operations (dev only)
 ENVIRONMENT=development
 SYSTEM_USER_ID=00000000-0000-0000-0000-000000000000
@@ -149,7 +149,7 @@ SYSTEM_USER_ID=00000000-0000-0000-0000-000000000000
 ### Production (.env.production)
 ```bash
 SUPABASE_URL=https://project.supabase.co
-SUPABASE_ANON_KEY=eyJhbGci...        # For user operations
+SUPABASE_PUB_KEY=eyJhbGci...        # For user operations
 # SUPABASE_SERVICE_KEY removed in production - SECURITY REQUIREMENT
 ENVIRONMENT=production
 ADMIN_API_KEY=your-secure-admin-key  # Required for admin operations
@@ -174,7 +174,7 @@ except ConfigurationError as e:
 
 **Production Validation Rules:**
 - `SUPABASE_SERVICE_KEY` must NOT be set (security risk - bypasses RLS)
-- `SUPABASE_ANON_KEY` must be set (required for user authentication)
+- `SUPABASE_PUB_KEY` must be set (required for user authentication)
 - `SUPABASE_URL` must be set
 
 ## Admin Operations
@@ -257,7 +257,7 @@ WARNING - Admin client created for operation: bulk_migration. RLS policies will 
 - [x] Schema permissions for Postgres roles
 - [x] Backend JWT validation middleware (`backend/auth_middleware.py`)
 - [x] User-scoped Supabase client factory (`utils/supabase_client.py`)
-- [x] Configuration settings for anon key and environment (`backend/config.py`)
+- [x] Configuration settings for pub key and environment (`backend/config.py`)
 - [x] Backend API JWT integration (`backend/main.py`)
 - [x] Agent tools refactoring with user_id parameter
 - [x] Frontend JWT integration (`AgentService.ts`)

@@ -78,7 +78,7 @@ def get_test_user_jwt(user_id: str) -> Optional[str]:
     Get a JWT token for a test user.
     
     In a real test environment, this would create a test user and get their JWT.
-    For now, we use the SUPABASE_ANON_KEY with a mock approach.
+    For now, we use the SUPABASE_PUB_KEY with a mock approach.
     
     Note: This is a simplified approach for testing. In production tests,
     you would use Supabase Auth to create real test users.

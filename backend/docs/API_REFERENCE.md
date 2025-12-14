@@ -162,7 +162,7 @@ All configuration is managed through environment variables and the `config.py` m
 ```bash
 # Supabase Configuration
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key-here          # Required for user operations
+SUPABASE_PUB_KEY=your-pub-key-here          # Required for user operations
 SUPABASE_SERVICE_KEY=your-service-key-here    # Optional, dev only
 
 # AWS Configuration
@@ -190,7 +190,7 @@ from backend.config import settings
 
 settings.is_production  # True if ENVIRONMENT=production
 settings.is_development # True if ENVIRONMENT=development
-settings.supabase_anon_key  # Anon key for user-scoped operations
+settings.SUPABASE_PUB_KEY  # Anon key for user-scoped operations
 settings.system_user_id     # System user ID for testing
 ```
 

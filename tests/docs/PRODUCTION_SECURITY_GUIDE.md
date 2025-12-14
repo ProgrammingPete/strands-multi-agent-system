@@ -43,7 +43,7 @@ def create_user_scoped_client(user_jwt: str):
     """
     supabase = create_client(
         os.getenv("SUPABASE_URL"),
-        os.getenv("SUPABASE_ANON_KEY"),  # Use anon key, not secret!
+        os.getenv("SUPABASE_PUB_KEY"),  # Use pub key, not secret!
         options={
             "headers": {
                 "Authorization": f"Bearer {user_jwt}"
@@ -220,7 +220,7 @@ class AgentService {
 
 # Keep only:
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your_anon_key_here
+SUPABASE_PUB_KEY=your_pub_key_here
 ```
 
 ## 🔒 Security Best Practices
@@ -233,7 +233,7 @@ supabase = create_client(url, secret_key)
 invoices = supabase.table('invoices').select('*').execute()
 
 # ✅ GOOD - Respects RLS
-supabase = create_client(url, anon_key, {
+supabase = create_client(url, pub_key, {
     "headers": {"Authorization": f"Bearer {user_jwt}"}
 })
 invoices = supabase.table('invoices').select('*').execute()
@@ -248,7 +248,7 @@ def validate_user_jwt(jwt: str) -> dict:
     """Validate JWT and extract user info."""
     supabase = create_client(
         os.getenv("SUPABASE_URL"),
-        os.getenv("SUPABASE_ANON_KEY")
+        os.getenv("SUPABASE_PUB_KEY")
     )
     
     # Verify JWT is valid
@@ -332,7 +332,7 @@ def log_data_access(user_id: str, table: str, operation: str):
 - ✅ Verify data isolation
 
 ### Production
-- ✅ Use only user JWTs (anon key + user token)
+- ✅ Use only user JWTs (pub key + user token)
 - ✅ RLS policies enforced
 - ✅ Secret key only for admin operations
 - ✅ Rate limiting enabled

@@ -139,18 +139,18 @@ def validate_jwt(jwt_token: str) -> str:
         AuthenticationError: If token is invalid or expired
     """
     try:
-        # Create Supabase client with anon key for JWT verification
+        # Create Supabase client with pub key for JWT verification
         supabase_url = os.getenv("SUPABASE_URL")
-        anon_key = os.getenv("SUPABASE_ANON_KEY")
+        pub_key = os.getenv("SUPABASE_PUB_KEY")
         
-        if not supabase_url or not anon_key:
+        if not supabase_url or not pub_key:
             raise AuthenticationError(
                 "Supabase configuration missing",
                 "CONFIGURATION_ERROR"
             )
         
         # Create client for auth verification
-        supabase = create_client(supabase_url, anon_key)
+        supabase = create_client(supabase_url, pub_key)
         
         # Verify JWT and get user using Supabase Auth
         # This validates the JWT signature, expiration, and issuer
@@ -229,17 +229,17 @@ class SupabaseClientWrapper:
             user_jwt: User's JWT token
             
         Returns:
-            Supabase client configured with user JWT and anon key
+            Supabase client configured with user JWT and pub key
         """
         supabase_url = os.getenv("SUPABASE_URL")
-        anon_key = os.getenv("SUPABASE_ANON_KEY")
+        pub_key = os.getenv("SUPABASE_PUB_KEY")
         
-        if not anon_key:
-            raise SupabaseConnectionError("SUPABASE_ANON_KEY not configured")
+        if not pub_key:
+            raise SupabaseConnectionError("SUPABASE_PUB_KEY not configured")
         
         return create_client(
             supabase_url=supabase_url,
-            supabase_key=anon_key,
+            supabase_key=pub_key,
             options={
                 "headers": {
                     "Authorization": f"Bearer {user_jwt}"
@@ -257,7 +257,7 @@ class SupabaseClientWrapper:
             dict with key_type, is_valid, warnings
         """
         supabase_key = os.getenv("SUPABASE_SERVICE_KEY")
-        anon_key = os.getenv("SUPABASE_ANON_KEY")
+        pub_key = os.getenv("SUPABASE_PUB_KEY")
         environment = os.getenv("ENVIRONMENT", "development")
         
         warnings = []
@@ -266,12 +266,12 @@ class SupabaseClientWrapper:
             warnings.append("WARNING: SUPABASE_SERVICE_KEY is set in production - RLS will be bypassed")
             logger.warning("SUPABASE_SERVICE_KEY detected in production environment")
         
-        if not anon_key:
-            warnings.append("WARNING: SUPABASE_ANON_KEY not configured - user-scoped operations unavailable")
+        if not pub_key:
+            warnings.append("WARNING: SUPABASE_PUB_KEY not configured - user-scoped operations unavailable")
         
         return {
-            "key_type": "service_key" if supabase_key else "anon_key",
-            "is_valid": bool(anon_key),
+            "key_type": "service_key" if supabase_key else "pub_key",
+            "is_valid": bool(pub_key),
             "warnings": warnings
         }
 
@@ -580,7 +580,7 @@ API_PORT=8000
 ```bash
 # Supabase Configuration
 SUPABASE_URL=https://project.supabase.co
-SUPABASE_ANON_KEY=eyJhbGci...  # NEW: Anon key for user operations
+SUPABASE_PUB_KEY=eyJhbGci...  # NEW: Anon key for user operations
 SUPABASE_SERVICE_KEY=sb_secret_...  # Secret key for system operations (dev only)
 
 # AWS Configuration
@@ -603,7 +603,7 @@ SYSTEM_USER_ID=00000000-0000-0000-0000-000000000000
 ```bash
 # Supabase Configuration
 SUPABASE_URL=https://project.supabase.co
-SUPABASE_ANON_KEY=eyJhbGci...  # Anon key only
+SUPABASE_PUB_KEY=eyJhbGci...  # Anon key only
 # SUPABASE_SERVICE_KEY removed in production
 
 # AWS Configuration
@@ -851,7 +851,7 @@ class InvoicesBatchTester:
 
 ### Property 2: User-Scoped Client Creation
 
-*For any* user JWT provided to the Supabase client factory, the created client must use the anon key with the JWT in the Authorization header, ensuring RLS policies are enforced.
+*For any* user JWT provided to the Supabase client factory, the created client must use the pub key with the JWT in the Authorization header, ensuring RLS policies are enforced.
 
 **Validates: Requirements 1.2, 13.2**
 
@@ -1010,7 +1010,7 @@ ORDER BY tablename, cmd;
 
 **Current State:**
 - `utils/supabase_client.py`: Uses `SUPABASE_SERVICE_KEY` only, no user-scoped client support
-- `backend/config.py`: Has `supabase_service_key` setting, no anon key or environment settings
+- `backend/config.py`: Has `supabase_service_key` setting, no pub key or environment settings
 - `backend/main.py`: No JWT validation, accepts `user_id` in request body without verification
 - `backend/chat_service.py`: Passes `user_id` via environment variable `CURRENT_USER_ID`
 - `agents/invoice_tools.py`: Has optional `user_id` with `SYSTEM_USER_ID` fallback
@@ -1020,7 +1020,7 @@ ORDER BY tablename, cmd;
 1. **Update `utils/supabase_client.py`:**
    - Add `create_user_scoped_client(user_jwt)` method to `SupabaseClientWrapper`
    - Add `verify_key_configuration()` method for startup validation
-   - Add `SUPABASE_ANON_KEY` to environment configuration
+   - Add `SUPABASE_PUB_KEY` to environment configuration
    - Log warnings when secret key is used
    
 2. **Create `backend/auth_middleware.py`:** (NEW FILE)
@@ -1029,7 +1029,7 @@ ORDER BY tablename, cmd;
    - Add `AuthenticationError` exception class
    
 3. **Update `backend/config.py`:**
-   - Add `supabase_anon_key` setting (NEW)
+   - Add `SUPABASE_PUB_KEY` setting (NEW)
    - Add `environment` setting (development/production) (NEW)
    - Add `system_user_id` setting for testing (NEW)
    
@@ -1104,7 +1104,7 @@ ORDER BY tablename, cmd;
 1. Deploy backend code changes
 2. Deploy frontend code changes
 3. Remove `SUPABASE_SERVICE_KEY` from production environment
-4. Verify only `SUPABASE_ANON_KEY` is configured
+4. Verify only `SUPABASE_PUB_KEY` is configured
 5. Monitor for errors
 6. Verify RLS enforcement working
 
@@ -1285,7 +1285,7 @@ logger.warning(
 ```bash
 ENVIRONMENT=development
 SUPABASE_URL=https://project.supabase.co
-SUPABASE_ANON_KEY=eyJhbGci...
+SUPABASE_PUB_KEY=eyJhbGci...
 SUPABASE_SERVICE_KEY=sb_secret_...  # Allowed in dev
 SYSTEM_USER_ID=00000000-0000-0000-0000-000000000000
 LOG_LEVEL=DEBUG
@@ -1295,7 +1295,7 @@ LOG_LEVEL=DEBUG
 ```bash
 ENVIRONMENT=production
 SUPABASE_URL=https://project.supabase.co
-SUPABASE_ANON_KEY=eyJhbGci...
+SUPABASE_PUB_KEY=eyJhbGci...
 # SUPABASE_SERVICE_KEY not set in production
 LOG_LEVEL=INFO
 RATE_LIMIT_PER_MINUTE=10

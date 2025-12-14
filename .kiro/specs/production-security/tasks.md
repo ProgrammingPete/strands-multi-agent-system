@@ -42,14 +42,14 @@
   - [x] 3.4 Update supabase_client.py with user-scoped client support
     - Add create_user_scoped_client(user_jwt) method to SupabaseClientWrapper
     - Add verify_key_configuration() method for startup validation
-    - Add SUPABASE_ANON_KEY environment variable support
+    - Add SUPABASE_PUB_KEY environment variable support
     - Log warnings when secret key is used
     - _Requirements: 1.2, 13.1, 13.2, 13.3, 13.4, 13.5_
   - [ ]* 3.5 Write property test for user-scoped client creation
     - **Property 2: User-Scoped Client Creation**
     - **Validates: Requirements 1.2, 13.2**
   - [x] 3.6 Update backend/config.py with new settings
-    - Add supabase_anon_key setting
+    - Add SUPABASE_PUB_KEY setting
     - Add environment setting (development/production)
     - Add system_user_id setting for testing
     - _Requirements: 6.1, 6.2, 12.1_
@@ -197,7 +197,7 @@
 - [x] 16. Production Environment Configuration
   - [x] 16.1 Create production environment configuration
     - Remove SUPABASE_SERVICE_KEY from production environment
-    - Verify only SUPABASE_ANON_KEY is configured
+    - Verify only SUPABASE_PUB_KEY is configured
     - _Requirements: 6.1, 6.2_
   - [x] 16.2 Implement admin operation authentication
     - Restrict secret key usage to admin-only operations

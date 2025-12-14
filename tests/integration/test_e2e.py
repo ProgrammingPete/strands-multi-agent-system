@@ -29,9 +29,9 @@ BASE_URL = "http://localhost:8000"
 API_URL = f"{BASE_URL}/api"
 
 # Supabase configuration for authentication
-# Prefer anon key for production-safe testing, fall back to service key for dev
+# Prefer pub key for production-safe testing, fall back to service key for dev
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY", "") or os.environ.get("SUPABASE_SERVICE_KEY", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_PUB_KEY", "") or os.environ.get("SUPABASE_SERVICE_KEY", "")
 
 # Test user credentials (same as frontend uses)
 TEST_USER_EMAIL = os.environ.get("TEST_USER_EMAIL", "test@example.com")

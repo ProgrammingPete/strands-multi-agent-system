@@ -1,63 +1,72 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Debug FastAPI Server",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/backend/main.py",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}"
-            },
-            "args": [],
-            "justMyCode": false,
-            "stopOnEntry": false
-        },
-        {
-            "name": "Debug FastAPI with Uvicorn",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "uvicorn",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}"
-            },
-            "args": [
-                "backend.main:app",
-                "--host", "0.0.0.0",
-                "--port", "8000",
-                "--reload",
-                "--log-level", "info"
-            ],
-            "justMyCode": false,
-            "stopOnEntry": false
-        },
-        {
-            "name": "Debug with UV Run",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/.venv/bin/python",
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}",
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}"
-            },
-            "args": [
-                "-m", "backend.main"
-            ],
-            "justMyCode": false,
-            "stopOnEntry": false
-        },
-        {
-            "name": "api",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "backend.main",
-            "console": "internalConsole",
-            "justMyCode": true
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python Debugger: FastAPI",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["main:app", "--reload"],
+      "jinja": true
+    },
+    {
+      "name": "Debug FastAPI Server",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/backend/main.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      },
+      "args": [],
+      "justMyCode": false,
+      "stopOnEntry": false
+    },
+    {
+      "name": "Debug FastAPI with Uvicorn",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      },
+      "args": [
+        "backend.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload",
+        "--log-level",
+        "info"
+      ],
+      "justMyCode": false,
+      "stopOnEntry": false
+    },
+    {
+      "name": "Debug with UV Run",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      },
+      "args": ["-m", "backend.main"],
+      "justMyCode": false,
+      "stopOnEntry": false
+    },
+    {
+      "name": "api",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "backend.main",
+      "console": "internalConsole",
+      "justMyCode": true
+    }
+  ]
 }

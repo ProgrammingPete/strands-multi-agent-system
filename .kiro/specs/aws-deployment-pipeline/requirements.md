@@ -95,7 +95,7 @@ This document specifies the requirements for deploying the Canvalo application (
 
 #### Acceptance Criteria
 
-1. WHEN the infrastructure deploys THEN the Secrets_Manager SHALL store Supabase URL, service key, and anon key as separate secret values
+1. WHEN the infrastructure deploys THEN the Secrets_Manager SHALL store Supabase URL, service key, and pub key as separate secret values
 2. WHEN the ECS task starts THEN the Task SHALL retrieve secrets from Secrets Manager at runtime without embedding them in the container image
 3. WHEN secrets are accessed THEN the IAM_Policy SHALL restrict access to only the ECS task execution role for that specific account
 4. WHEN a secret is rotated THEN the ECS_Service SHALL pick up the new secret value on the next task restart without redeployment
@@ -150,7 +150,7 @@ This document specifies the requirements for deploying the Canvalo application (
 1. WHEN the backend starts THEN the Backend SHALL first check for AWS Secrets Manager configuration, then fall back to environment variables and .env files
 2. WHEN AWS_SECRETS_NAME environment variable is set THEN the Backend SHALL retrieve all configuration from the specified Secrets Manager secret
 3. WHEN AWS_SECRETS_NAME is not set THEN the Backend SHALL use the existing .env file and environment variable loading behavior
-4. WHEN migrating to Secrets Manager THEN the Migration_Process SHALL support the same configuration keys as the current .env files (SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_ANON_KEY, BEDROCK_MODEL_ID, etc.)
+4. WHEN migrating to Secrets Manager THEN the Migration_Process SHALL support the same configuration keys as the current .env files (SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_PUB_KEY, BEDROCK_MODEL_ID, etc.)
 5. WHEN the backend loads configuration THEN the Backend SHALL log which configuration source is being used (Secrets Manager or environment variables) at startup
 
 ### Requirement 10: Automated Testing in Pipeline

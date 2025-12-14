@@ -116,7 +116,7 @@ Required environment variables:
 ```bash
 # Supabase Configuration
 SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_anon_key        # For user operations (RLS enforced)
+SUPABASE_PUB_KEY=your_pub_key        # For user operations (RLS enforced)
 SUPABASE_SERVICE_KEY=your_service_key  # For system operations (dev only)
 
 # AWS Configuration

@@ -3,7 +3,7 @@
 Verify Supabase key configuration.
 
 This script checks if the SUPABASE_SERVICE_KEY is correctly configured
-and identifies whether it's an anon key or service role key.
+and identifies whether it's an pub key or service role key.
 """
 
 import os

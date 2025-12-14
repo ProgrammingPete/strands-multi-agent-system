@@ -27,7 +27,7 @@ This specification addresses the critical security vulnerabilities in the multi-
 #### Acceptance Criteria
 
 1. WHEN the Backend API receives a request THEN the system SHALL validate the user JWT token before processing
-2. WHEN creating a Supabase client for user operations THEN the system SHALL use the anon key with the user's JWT token
+2. WHEN creating a Supabase client for user operations THEN the system SHALL use the pub key with the user's JWT token
 3. WHEN a user JWT is invalid or expired THEN the system SHALL reject the request and return an authentication error
 4. WHEN the Backend API makes database queries THEN the system SHALL use user-scoped clients that enforce RLS policies
 5. WHERE user authentication is required THEN the system SHALL extract the user_id from the validated JWT
@@ -91,7 +91,7 @@ This specification addresses the critical security vulnerabilities in the multi-
 #### Acceptance Criteria
 
 1. WHEN deploying to production THEN the system SHALL not include the SUPABASE_SERVICE_KEY environment variable
-2. WHEN the Backend API starts in production mode THEN the system SHALL verify that only the anon key is configured
+2. WHEN the Backend API starts in production mode THEN the system SHALL verify that only the pub key is configured
 3. WHERE the secret key is needed THEN the system SHALL restrict its use to admin-only operations with separate authentication
 4. WHEN admin operations are performed THEN the system SHALL validate admin credentials before using the secret key
 5. WHERE testing or development environments are used THEN the system SHALL allow the secret key for system operations with SYSTEM_USER_ID
@@ -180,7 +180,7 @@ This specification addresses the critical security vulnerabilities in the multi-
 #### Acceptance Criteria
 
 1. WHEN creating a Supabase client for user operations THEN the system SHALL accept a user JWT parameter
-2. WHEN a user JWT is provided THEN the system SHALL create a client with the anon key and user JWT in the Authorization header
+2. WHEN a user JWT is provided THEN the system SHALL create a client with the pub key and user JWT in the Authorization header
 3. WHEN no user JWT is provided in development mode THEN the system SHALL use the secret key for system operations
 4. WHEN the application starts THEN the system SHALL verify the configured Supabase key type and log warnings for incorrect keys
 5. WHERE the secret key is used THEN the system SHALL log a warning that RLS policies are bypassed

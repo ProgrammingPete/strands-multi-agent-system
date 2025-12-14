@@ -451,7 +451,7 @@ Each account stores secrets with the following structure:
 {
   "SUPABASE_URL": "https://xxx.supabase.co",
   "SUPABASE_SERVICE_KEY": "eyJ...",
-  "SUPABASE_ANON_KEY": "eyJ...",
+  "SUPABASE_PUB_KEY": "eyJ...",
   "BEDROCK_MODEL_ID": "amazon.nova-lite-v1:0",
   "AWS_REGION": "us-east-1"
 }

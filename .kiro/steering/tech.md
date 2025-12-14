@@ -31,7 +31,7 @@
 Environment variables (`.env`):
 - `SUPABASE_URL`: Supabase project URL
 - `SUPABASE_SERVICE_KEY`: Supabase service role key
-- `SUPABASE_ANON_KEY`: Supabase anonymous key (for JWT validation)
+- `SUPABASE_PUB_KEY`: Supabase anonymous key (for JWT validation)
 - `AWS_REGION`: AWS region (default: us-east-1)
 - `AWS_PROFILE`: Optional AWS profile name
 - `BEDROCK_MODEL_ID`: Bedrock model ID
