@@ -1,20 +1,44 @@
 # Database Migrations
 
-This directory contains SQL migration scripts for the Canvalo multi-agent system.
+This directory contains SQL migration scripts for the Canvalo multi-agent system, implementing production-ready security with Row-Level Security (RLS) and user data isolation.
+
+## Overview
+
+The migration system ensures that the Supabase PostgreSQL database is properly configured for multi-user access with strict security policies. All business entity tables are migrated to support user-scoped operations that integrate seamlessly with the multi-agent system.
 
 ## Migration Scripts
 
-### add_user_id_and_rls.sql
+### `add_user_id_and_rls.sql` - Production Security Migration
 
-This migration adds user_id columns and Row Level Security (RLS) policies to all api schema tables for production security.
+This comprehensive migration implements user data isolation and Row-Level Security across all 9 business entity tables in the api schema.
 
-**What it does:**
-1. Adds `user_id` columns to all 9 api schema tables (invoices, projects, appointments, proposals, contacts, reviews, campaigns, tasks, goals)
-2. Creates foreign key references to `auth.users(id)`
-3. Creates indexes on all `user_id` columns for performance
-4. Enables RLS on all tables
-5. Creates SELECT, INSERT, UPDATE, DELETE policies using `auth.uid() = user_id`
-6. Grants schema permissions to `authenticated`, `anon`, and `service_role` roles
+**What it implements:**
+
+1. **User ID Columns**: Adds `user_id UUID` columns to all 9 business entity tables:
+   - `api.invoices` - Invoice management with user isolation
+   - `api.projects` - Project tracking per user
+   - `api.appointments` - User-specific scheduling
+   - `api.proposals` - Estimates and quotes per user
+   - `api.contacts` - CRM with user-scoped contacts
+   - `api.reviews` - Customer feedback per user
+   - `api.campaigns` - Marketing campaigns per user
+   - `api.tasks` - Task management with user isolation
+   - `api.goals` - Business objectives per user
+
+2. **Foreign Key Constraints**: Creates references to `auth.users(id)` for data integrity
+
+3. **Performance Indexes**: Creates indexes on all `user_id` columns for optimal query performance
+
+4. **Row-Level Security (RLS)**: Enables RLS on all tables with comprehensive policies:
+   - **SELECT Policy**: Users can only view their own records (`auth.uid() = user_id`)
+   - **INSERT Policy**: Users can only create records with their own user_id
+   - **UPDATE Policy**: Users can only modify their own records
+   - **DELETE Policy**: Users can only delete their own records
+
+5. **Schema Permissions**: Grants appropriate permissions to PostgreSQL roles:
+   - `authenticated` role: Full CRUD access with RLS enforcement
+   - `anon` role: Limited access for public operations
+   - `service_role` role: Administrative access (bypasses RLS)
 
 **How to run:**
 1. Open the Supabase SQL Editor for your project

@@ -1,6 +1,16 @@
 # Backend Documentation Index
 
-Welcome to the Canvalo FastAPI Backend documentation.
+Welcome to the Canvalo Multi-Agent FastAPI Backend documentation.
+
+## Overview
+
+The Canvalo backend is a FastAPI service that provides AI-powered business automation through specialized agents. It offers:
+
+- **Multi-Agent Intelligence**: Supervisor agent with 9 specialized domain agents
+- **Streaming Chat API**: Real-time responses via Server-Sent Events (SSE)
+- **Conversation Management**: Full CRUD operations with pagination support
+- **Production Security**: JWT authentication with Row-Level Security (RLS)
+- **AWS Integration**: Bedrock for LLM, Secrets Manager for configuration
 
 ## Getting Started
 
@@ -69,16 +79,19 @@ Welcome to the Canvalo FastAPI Backend documentation.
 ## Quick Links
 
 ### For Developers
+
 1. Start here: [Quick Start Guide](QUICK_START.md)
-2. Understand the architecture: [API Reference - Architecture](API_REFERENCE.md#architecture)
+2. Understand the architecture: [API Reference - Architecture](API_REFERENCE.md#architecture-overview)
 3. Learn about error handling: [API Reference - Error Handling](API_REFERENCE.md#error-handling)
 
 ### For DevOps
+
 1. Deployment guide: [API Reference - Deployment](API_REFERENCE.md#deployment)
 2. Configuration: [API Reference - Configuration](API_REFERENCE.md#configuration)
 3. Monitoring: [API Reference - Monitoring](API_REFERENCE.md#monitoring)
 
 ### For Project Managers
+
 1. Implementation summary: [Implementation Summary](IMPLEMENTATION_SUMMARY.md)
 2. Requirements validation: [Implementation Summary - Requirements](IMPLEMENTATION_SUMMARY.md#requirements-validation)
 3. Testing results: [Implementation Summary - Testing](IMPLEMENTATION_SUMMARY.md#testing)

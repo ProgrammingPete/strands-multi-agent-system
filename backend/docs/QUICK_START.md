@@ -1,10 +1,13 @@
-# Quick Start Guide - FastAPI Backend
+# Quick Start Guide - Canvalo Multi-Agent Backend
+
+Get the Canvalo multi-agent FastAPI backend running in 5 minutes.
 
 ## Prerequisites
 
-1. Python 3.13 installed
-2. Virtual environment activated
-3. Dependencies installed: `uv sync`
+- **Python 3.13+** (3.11+ supported)
+- **uv package manager** ([installation guide](https://docs.astral.sh/uv/getting-started/installation/))
+- **Supabase project** with configured database
+- **AWS credentials** with Bedrock access
 
 ## Configuration
 
@@ -69,44 +72,76 @@ uv run uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 
 ## Testing the Server
 
-### 1. Check if server is running
+### 1. Health Check
 ```bash
 curl http://localhost:8000/health
 ```
 
-Expected response:
+**Expected Response:**
 ```json
 {
   "status": "healthy",
+  "timestamp": "2025-01-15T10:30:00Z",
   "supabase_configured": true,
-  "bedrock_model": "amazon.nova-lite-v1:0"
+  "bedrock_model": "amazon.nova-lite-v1:0",
+  "environment": "development",
+  "agents_available": 9
 }
 ```
 
-### 2. Test chat streaming
+### 2. Test Multi-Agent Chat
 ```bash
 curl -X POST http://localhost:8000/api/chat/stream \
   -H "Content-Type: application/json" \
   -d '{
     "message": "What can you help me with?",
     "conversation_id": "test-123",
-    "user_id": "user-456",
+    "user_id": "00000000-0000-0000-0000-000000000000",
     "history": []
   }'
 ```
 
-Expected response (SSE stream):
+**Expected Response (SSE Stream):**
 ```
 data: {"type":"token","content":"I can help you","agent_type":"supervisor"}
-
-data: {"type":"token","content":" with various","agent_type":"supervisor"}
-
-data: {"type":"complete","agent_type":"supervisor"}
+data: {"type":"token","content":" manage your painting business","agent_type":"supervisor"}
+data: {"type":"token","content":" with 9 specialized agents","agent_type":"supervisor"}
+data: {"type":"complete","agent_type":"supervisor","tokens_used":25}
 ```
 
-### 3. Run automated tests
+### 3. Test Specific Agent
 ```bash
-uv run python tests/test_server.py
+curl -X POST http://localhost:8000/api/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Show me all my invoices",
+    "conversation_id": "test-124", 
+    "user_id": "00000000-0000-0000-0000-000000000000",
+    "history": []
+  }'
+```
+
+### 4. Test Conversation Management
+```bash
+# Create conversation
+curl -X POST http://localhost:8000/api/conversations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "00000000-0000-0000-0000-000000000000",
+    "title": "Test Conversation"
+  }'
+
+# List conversations
+curl "http://localhost:8000/api/conversations?user_id=00000000-0000-0000-0000-000000000000"
+```
+
+### 5. Run Automated Tests
+```bash
+# Unit tests (no server required)
+uv run pytest tests/ --ignore=tests/integration -v
+
+# Integration tests (requires running server)
+uv run pytest tests/integration/ -v
 ```
 
 ## API Documentation

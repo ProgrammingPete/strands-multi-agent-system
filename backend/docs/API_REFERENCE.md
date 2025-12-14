@@ -1,49 +1,204 @@
 # API Reference
 
-Complete API documentation for the Canvalo FastAPI Backend.
+Complete API documentation for the Canvalo Multi-Agent FastAPI Backend.
 
-## Architecture
+## Architecture Overview
 
+The backend follows a layered architecture pattern optimized for AI agent interactions:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    API LAYER                                     │
+│  FastAPI Application (main.py)                                  │
+│  - OpenAPI/Swagger documentation                                │
+│  - CORS middleware for frontend integration                     │
+│  - Request/response logging and validation                      │
+│  - Health checks and service status                             │
+└─────────────────┬───────────────────────────────────────────────┘
+                  │
+┌─────────────────▼───────────────────────────────────────────────┐
+│                 SERVICE LAYER                                    │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  chat_service.py - SSE streaming with agent routing     │   │
+│  │  conversation_service.py - Conversation CRUD operations │   │
+│  │  context_manager.py - Context building & summarization  │   │
+│  │  auth_middleware.py - JWT validation & user isolation   │   │
+│  │  error_handler.py - Retry logic & error translation     │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────┬───────────────────────────────────────────────┘
+                  │
+┌─────────────────▼───────────────────────────────────────────────┐
+│                 AGENT LAYER                                      │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │  supervisor.py - Intelligent query routing              │   │
+│  │  9 specialized agents with Supabase CRUD tools         │   │
+│  │  Natural language processing for business operations    │   │
+│  └─────────────────────────────────────────────────────────┘   │
+└─────────────────┬───────────────────────────────────────────────┘
+                  │
+┌─────────────────▼───────────────────────────────────────────────┐
+│                 DATA LAYER                                       │
+│  Supabase PostgreSQL with Row-Level Security (RLS)             │
+│  - 9 business entity tables with user isolation                │
+│  - Conversations and messages with pagination                  │
+│  - Real-time subscriptions and authentication                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### File Structure
 ```
 backend/
 ├── __init__.py              # Package initialization
 ├── main.py                  # FastAPI application and endpoints
-├── config.py                # Configuration and settings
-├── models.py                # Pydantic models for validation
-├── auth_middleware.py       # JWT validation and authentication
-├── chat_service.py          # Chat streaming service
-├── conversation_service.py  # Conversation management service
-├── context_manager.py       # Context management
-├── error_handler.py         # Error handling and retry logic
-└── docs/                    # Documentation
+├── config.py                # Configuration management with Pydantic Settings
+├── models.py                # Pydantic models for request/response validation
+├── auth_middleware.py       # JWT validation and user authentication
+├── admin_auth.py            # Admin authentication for privileged operations
+├── chat_service.py          # Chat streaming service with SSE
+├── conversation_service.py  # Conversation management with Supabase
+├── context_manager.py       # Context building and token management
+├── error_handler.py         # Error handling with retry logic and user-friendly messages
+└── docs/                    # Comprehensive documentation
 ```
 
 ## API Endpoints
 
-### Health Check
+### Health & Status Endpoints
 
-```
+#### Root Endpoint
+```http
 GET /
+```
+
+**Response:**
+```json
+{
+  "message": "Canvalo Multi-Agent Backend API",
+  "version": "1.0.0",
+  "docs": "/docs",
+  "health": "/health"
+}
+```
+
+#### Health Check
+```http
 GET /health
 ```
 
-Returns service status and configuration.
-
-### Chat Streaming
-
+**Response:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-01-15T10:30:00Z",
+  "supabase_configured": true,
+  "bedrock_model": "amazon.nova-lite-v1:0",
+  "environment": "development",
+  "agents_available": 9,
+  "configuration": {
+    "jwt_required": false,
+    "cors_enabled": true,
+    "admin_auth_configured": true
+  }
+}
 ```
+
+**Status Codes:**
+- `200`: Service healthy and all dependencies available
+- `503`: Service unhealthy or dependencies unavailable
+
+### Multi-Agent Chat Streaming
+
+#### Stream Chat Response
+```http
 POST /api/chat/stream
 Content-Type: application/json
+Authorization: Bearer <jwt_token>  # Required in production
 
 {
   "message": "What invoices do I have?",
   "conversation_id": "uuid",
-  "user_id": "uuid",
-  "history": []
+  "user_id": "uuid", 
+  "history": [
+    {
+      "role": "user",
+      "content": "Previous message",
+      "timestamp": "2025-01-15T10:25:00Z"
+    },
+    {
+      "role": "assistant", 
+      "content": "Previous response",
+      "timestamp": "2025-01-15T10:25:30Z"
+    }
+  ]
 }
 ```
 
-Returns Server-Sent Events stream with chat response.
+**Request Fields:**
+- `message` (required): User's natural language query
+- `conversation_id` (required): UUID for conversation tracking
+- `user_id` (required): User ID for authorization and data scoping
+- `history` (optional): Previous conversation messages for context
+
+**Response Format (Server-Sent Events):**
+```
+data: {"type":"token","content":"I can help you","agent_type":"supervisor"}
+
+data: {"type":"token","content":" with invoices.","agent_type":"supervisor"}
+
+data: {"type":"agent_routing","agent":"invoices","query":"user invoice request"}
+
+data: {"type":"token","content":"You have 3 invoices:","agent_type":"invoices"}
+
+data: {"type":"tool_call","tool":"get_invoices","status":"executing"}
+
+data: {"type":"token","content":" Invoice #001 ($1,200)","agent_type":"invoices"}
+
+data: {"type":"complete","agent_type":"invoices","tokens_used":45}
+```
+
+**SSE Chunk Types:**
+- `token`: Text token from LLM response
+- `agent_routing`: Agent selection and query routing information
+- `tool_call`: Agent tool execution status
+- `complete`: Stream finished successfully
+- `error`: Error occurred during processing
+
+**Status Codes:**
+- `200`: Stream started successfully
+- `400`: Invalid request format or missing required fields
+- `401`: Authentication required (production mode)
+- `403`: User not authorized for conversation
+- `500`: Internal server error
+
+**Example Agent Interactions:**
+```bash
+# Invoice query
+curl -X POST http://localhost:8000/api/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Show me overdue invoices",
+    "conversation_id": "conv-123",
+    "user_id": "user-456"
+  }'
+
+# Appointment scheduling  
+curl -X POST http://localhost:8000/api/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Schedule a meeting with John Smith next Tuesday",
+    "conversation_id": "conv-124", 
+    "user_id": "user-456"
+  }'
+
+# Multi-agent coordination
+curl -X POST http://localhost:8000/api/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "What is my revenue this month and which clients need follow-up?",
+    "conversation_id": "conv-125",
+    "user_id": "user-456"
+  }'
+```
 
 ### Conversation Management
 

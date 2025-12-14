@@ -4,22 +4,26 @@ A sophisticated multi-agent AI system built with the Strands Agents SDK for mana
 
 ## Overview
 
-This system integrates specialized AI agents into Canvalo's business management platform, enabling users to manage invoices, appointments, projects, proposals, contacts, reviews, campaigns, tasks, and settings through conversational AI.
+This system provides AI-powered business automation through specialized agents that handle different business domains like invoicing, appointments, projects, and more. It serves as the intelligent backend for the Canvalo business management platform.
 
 ## Architecture
 
-The system uses an "Agents as Tools" pattern with:
+The system uses a Supervisor-Agent pattern with:
 - **Supervisor Agent**: Routes user queries to appropriate specialized agents
 - **Specialized Agents**: Domain experts with Supabase CRUD tools
-  - Invoices ✅
-  - Appointments Agent (planned)
-  - Projects Agent (planned)
-  - Proposals Agent (planned)
-  - Contacts Agent (planned)
-  - Reviews Agent (planned)
-  - Campaign Agent (planned)
-  - Tasks Agent (planned)
-  - Settings Agent (planned)
+- **FastAPI Backend**: REST API service for chat streaming and conversation management
+- **JWT Authentication**: Production-ready security with Row-Level Security (RLS)
+
+### Implemented Agents ✅
+- **Invoices**: Invoice creation, viewing, updating, payment tracking
+- **Appointments**: Scheduling and calendar management  
+- **Campaigns**: Marketing campaign management
+- **Contacts**: Client/supplier CRM
+- **Goals**: Business goal tracking
+- **Projects**: Project management
+- **Proposals**: Estimates and proposals
+- **Reviews**: Customer review management
+- **Tasks**: Task tracking
 
 ## Technology Stack
 
@@ -236,47 +240,54 @@ def example_agent_tool(query: str) -> str:
 
 ## Features
 
-### Implemented ✅
+### Core Capabilities ✅
 
-- **All Domain Agents**
-  - Invoices: Create, read, update, delete, payment tracking
-  - Appointments: Scheduling and calendar management
-  - Projects: Project tracking and management
-  - Proposals: Estimates and proposals
-  - Contacts: Client/supplier CRM
-  - Reviews: Customer review management
-  - Campaigns: Marketing campaigns
-  - Tasks: Task tracking
-  - Goals: Business goal tracking
+- **Multi-Agent Intelligence**
+  - Supervisor agent with intelligent routing
+  - 9 specialized domain agents (invoices, appointments, campaigns, contacts, goals, projects, proposals, reviews, tasks)
+  - Natural language query processing
+  - Context-aware conversations
 
 - **FastAPI Backend Service**
-  - REST API with streaming chat and conversation management
-  - Server-Sent Events (SSE) for real-time responses
-  - JWT authentication (required in production)
+  - REST API with streaming chat via Server-Sent Events (SSE)
+  - Conversation management (create, list, get, delete) with pagination
+  - JWT authentication (required in production, optional in development)
   - CORS support for frontend integration
+  - Comprehensive error handling with user-friendly messages
 
-- **Security**
-  - JWT token validation via Supabase
-  - Row-Level Security (RLS) enforcement
+- **Production Security**
+  - JWT token validation for authenticated requests
+  - User ID verification against JWT claims
+  - Row-Level Security (RLS) enforcement via Supabase
+  - Environment-based auth enforcement (strict in production)
+  - Admin authentication for service-level operations
   - User-scoped database operations
-  - Admin authentication for service operations
+
+- **Testing & Quality Assurance**
+  - Unit tests for core functionality
+  - End-to-end integration tests
+  - Row-Level Security property-based tests
+  - Context management tests
+  - Configuration fallback testing (AWS Secrets Manager vs .env)
 
 - **AWS Deployment Ready**
   - Dockerfile with health checks
-  - Secrets Manager integration with .env fallback
-  - CDK infrastructure in separate repo (canvalo-infrastructure)
+  - AWS Secrets Manager integration with .env fallback
+  - CDK infrastructure deployment (separate repo: canvalo-infrastructure)
+  - Production environment configuration validation
 
-### In Progress 🔄
+### Current Status 🔄
 
-- Rate limiting
-- Audit logging
-- Voice mode support
+- **Performance Optimization**: Database query optimization, streaming latency improvements, pagination support
+- **Context Management**: Token limit management, context summarization, message persistence
 
-### Planned 📋
+### Planned Enhancements 📋
 
-- Analytics integration
-- CloudWatch alarms and dashboards
-- CI/CD pipeline via CDK Pipelines
+- Rate limiting implementation
+- Audit logging for security events
+- Voice mode support for audio interactions
+- CloudWatch alarms and monitoring dashboards
+- Advanced analytics integration
 
 ## Documentation
 
